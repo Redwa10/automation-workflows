@@ -1,0 +1,943 @@
+{
+  "name": "Automated LinkedIN",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"sonar-pro\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"As an AI research assistant, your task is to identify current, impactful topics and trends in AI agents, AI, AI automation. Focus on issues that are relevant to both experienced professionals and those beginning their careers in these fields.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Your research should cover the topic of: {{ $json.Idea }} {{ $json.Description }}\\n\\nRequirements:\\n- A brief overview of the topic\\n- Why it's significant or how it's impacting the industry\\n- Any relevant statistics, expert opinions, or case studies\\n- Potential implications for professionals in the field\\n\\nPresentation Guidelines:\\n- Provide 1 thoroughly researched topics\\n- Ensure they are current, relevant, and likely to spark interest among LinkedIn professionals in AI agents, AI, and AI automation fields\\n- Ensure the topics are not redundant with each other\\n\\nOutput Format:\\n- JSON format\\n- Each idea and its summary as separate items in a collection\\n- Do not include any notations like '''json\\n- Do not use any line breaks\\n- Do not create an array titled 'video ideas'\\n- Your first character must be a [\\n\\nExample:\\n\\nIdea: Integrated Workflows with After Effects and Cinema 4D\\nDescription: The integration of Adobe After Effects and Maxon Cinema 4D has significantly enhanced the workflow for motion graphics designers. This integration allows for seamless import and export of 3D elements, scenes, and animations between the two software tools. Designers can create complex 3D scenes in Cinema 4D and then composite them in After Effects, leveraging the strengths of both applications.\\nSignificance: This integration streamlines the creative process, enabling designers to focus on artistic expression rather than technical hurdles. It also opens up new possibilities for creating sophisticated 3D motion graphics without the need for intermediate passes or image sequence files.\\nImplications: Professionals can expect to deliver more complex and visually appealing projects faster. This integration is particularly beneficial for those transitioning from 2D to 3D design, as it simplifies the learning curve and enhances productivity.\"\n    }\n  ]\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        200
+      ],
+      "id": "63134b2e-65d5-44bb-9218-ef0452c34190",
+      "name": "Perplexity"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Idea: {{ $json.message.content.Idea }}\nDescription: {{ $json.message.content.Description }}\nSignificance: {{ $json.message.content.Significance }}\nImplications: {{ $json.message.content.Implications }}\n\nMake sure the writing style is really natural and doesn't use any cheesy phrases like \"Here's the silver lining!\" or \"Here's the kicker...\"\n\nStart with a strong conviction statement.\n\nRemember these key characteristics:\n\n1. A casual, conversational style mixed with industry-specific terminology\n2. Frequent use of personal anecdotes and experiences\n3. Strong emphasis through capitalization and punctuation\n4. A passionate and authentic tone when discus sing your field or interests\n5. Open discussion of challenges and difficulties\n6. Support and encouragement for other community members\n7. Focus on personal growth, project development, and community dynamics\n\n- Do not include a title, just the post copy\n- Never include PAS sections headers (problem-agitate-solution)",
+        "options": {
+          "systemMessage": "=Role:\n\nYou are an expert in LinkedIn content strategy and skilled in crafting high-impact copy using the Problem-Agitate-Solve (PAS) framework.\n\nPurpose:\n\nCreate a compelling LinkedIn post that generates high engagement (likes, comments, and shares) by leveraging the PAS formula and adhering to the guidelines below.\n\nTask:\n\nWrite a publish-ready LinkedIn post that is:\n\n- Engaging and informative\n- Encourages interaction\n- Structured for maximum readability\n\nTone of Voice: \n\n- Professional & Authentic: Maintain a sincere and conversational style tailored for LinkedIn. Reference the Duncan ToneOfVoice document.\n- Genuine Storytelling: Incorporate real-life anecdotes that add value and relevance.\nEmphatic & Reflective: Use short, impactful sentences to highlight key points.\n- Supportive: Offer encouragement and insight to foster community engagement.\n\nFocus:\n\nEmphasize personal growth, lessons learned, and insights that benefit others.\n\nWriting Style:\n\n- Natural & Sincere: Avoid cheesy phrases, forced hooks, or overused expressions.\n- Clarity & Simplicity: Use clear, concise language free of jargon, slang, or excessive informality.\n- Engagement-Driven: Speak directly to the reader using “you” to build connection.\n\nContent Structure – PAS Framework:\n\nProblem (Hook):\n\n- Start with a strong, attention-grabbing statement that identifies a real challenge or lesson.\n- Use short sentences to express personal realizations or industry-relevant struggles.\n\nAgitate:\n\n- Expand on the consequences of the problem.\n- Use a bullet-point list to highlight specific challenges, mistakes, or frustrations.\n- Keep bullet points concise, starting each with a strong action word or phrase.\n\nSolve:\n\n- Share the key realization or solution that helped overcome the issue.\n- Use another bullet-point list (if relevant) to outline positive changes or benefits.\n- Conclude with motivational takeaways that inspire action.\n\nFormatting Guidelines:\n- Length: Max 150 words.\n- Short Paragraphs: Keep a smooth, rhythmic flow.\n- Bullet Points: Emphasize key negative and positive takeaways.\n- Opening: Begin with a strong hook that grabs attention immediately.\n- Closing: End with an encouraging message or engagement-driving question.\n\nDo Not Include:\n\n❌ Titles – Only provide post copy.\n❌ Headers or Labels – No section headers.\n❌ Emojis, Hashtags, or Numbered Lists – Use bullet points instead.\n❌ Cheesy clichés, idioms, or slang – Keep language authentic and professional.\n❌ Semicolons – Maintain clean, readable sentence structures.\n\nEngagement Strategies:\n\n✔ Call to Action: End with a meaningful question or prompt to encourage responses.\n✔ Authenticity: Share unique insights to build credibility and trust.\n\nFinal Checks:\n\n✅ Proofread for grammar, spelling, and clarity.\n✅ Ensure originality – No recycled templates or generic content."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1640,
+        340
+      ],
+      "id": "524b11f5-8e6f-4050-bc3e-b2b3fb54d543",
+      "name": "Create LinkedIn post"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4",
+          "mode": "list",
+          "cachedResultName": "Linkedin posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Idea": "={{ $('Update Data').item.json.Idea }}",
+            "Status": "Approved",
+            "LinkedIN posts": "={{ $('Update Data').item.json['LinkedIN posts'] }}",
+            "title": "={{ $('Get articles').item.json.title }}"
+          },
+          "matchingColumns": [
+            "Idea"
+          ],
+          "schema": [
+            {
+              "id": "Idea",
+              "displayName": "Idea",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Implications",
+              "displayName": "Implications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "significance",
+              "displayName": "significance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "LinkedIN posts",
+              "displayName": "LinkedIN posts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        620,
+        620
+      ],
+      "id": "1cdeb058-e73e-4f40-a837-ee84e9d2f6b3",
+      "name": "Approved",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ugpyltO1vW4sTXNh",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        -120
+      ],
+      "id": "8cb37e70-8453-4f22-b6ad-26ff27b4247e",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4",
+          "mode": "list",
+          "cachedResultName": "Linkedin posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Idea": "={{ $('Split out data from perplexity').item.json.message.content.Idea }}",
+            "significance": "={{ $('Split out data from perplexity').item.json.message.content.Significance }}",
+            "Implications": "={{ $('Split out data from perplexity').item.json.message.content.Implications }}",
+            "LinkedIN posts": "={{ $json.output }}",
+            "Description": "={{ $('Split out data from perplexity').item.json.message.content.Description }}",
+            "Status": "Not approved",
+            "title": "={{ $('Get articles').item.json.title }}"
+          },
+          "matchingColumns": [
+            "Idea"
+          ],
+          "schema": [
+            {
+              "id": "Idea",
+              "displayName": "Idea",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Implications",
+              "displayName": "Implications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "significance",
+              "displayName": "significance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LinkedIN posts",
+              "displayName": "LinkedIN posts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        120,
+        620
+      ],
+      "id": "dd92ea30-d587-4027-a11e-e71034d4c710",
+      "name": "Update Data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ugpyltO1vW4sTXNh",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [
+        1480,
+        380
+      ],
+      "id": "9bd138cb-a022-4217-87c6-7609f06aadab",
+      "name": "Anthropic ",
+      "credentials": {
+        "anthropicApi": {
+          "id": "V4ksabuLZuyHtvTZ",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Input data: {{ $('Get articles').item.json.content }}"
+            },
+            {
+              "content": "=# Role:\n\nDetermine whether a given blog article is related to AI agents or AI automation.\n\n# Task:\n\nAnalyze a provided blog article and classify it as either relevant (\"YES\") or not relevant (\"NO\") to AI agents or AI automation.\n\n# Instructions:\n\nTake as input a blog article from a news archive.\nEvaluate if the content discusses AI agents or AI automation.\nIf the blog article is about AI agents or AI automation, classify it as \"YES\".\nIf the blog article is unrelated to AI agents or AI automation, classify it as \"NO\".\nRetain all metadata fields exactly as provided.\nOutput the final classification and metadata in JSON format.\n\n# Rules:\n\nAlways retain the following metadata fields:\n\nThe classification (is_related) must be either \"YES\" or \"NO\".\n\nThe output must be formatted as valid JSON.\n\nExample 1\n\nblog article:\n\n\"AI companies have abandoned safety concerns in favor of rapid advancement, leading to cheaper AI, increased misuse by bad actors, and widespread job displacement\"\n\n{\n  \"is_related\": \"YES\"\n}",
+              "role": "system"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1360,
+        -140
+      ],
+      "id": "2ca2c28c-46e5-4637-8833-2ca1eac4bd98",
+      "name": "Filter articles about your niche",
+      "credentials": {
+        "openAiApi": {
+          "id": "GgvCwcPhIr8AAP5D",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [
+        300,
+        360
+      ],
+      "id": "c1bf5725-6717-4e45-b030-d7cb0e0eb526",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "V4ksabuLZuyHtvTZ",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"Idea\": \"<Generated AI-related LinkedIn Post Idea>\",\n  \"Description\": \"<Brief Explanation of the Idea>\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        620,
+        360
+      ],
+      "id": "c4bd0e8d-ebae-403e-87d3-583e3e0c2ff5",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Input data: {{ $('Get articles').item.json.content }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Role:\n\nYou are an expert in LinkedIn content strategy, skilled in identifying engaging topics that drive interaction.\n\nPurpose:\n\nGenerate compelling LinkedIn post ideas focused on AI Agents and AI Automation, along with a concise description of each idea to guide content creation.\n\nTask:\n\nAnalyze provided content (e.g., blogs, industry trends, or general themes) and generate:\n\n- A LinkedIn Post Idea – A thought-provoking, high-engagement topic related to AI Agents or AI Automation.\n- A Brief Description – A short, compelling summary that highlights the significance of the idea for LinkedIn audiences.\n\nGuidelines:\n\n- Ideas should align with professional growth, innovation, or industry insights.\n- Descriptions should be engaging, clear, and relevant to the idea that is genarated.\n\n# Rules:\n\nThe output must be formatted as valid JSON.\n\nExample 1\n\n{\n  \"Idea\": \"AI Agents: The Future of Autonomous Decision-Making\",\n  \"Description\": \"AI agents are evolving beyond simple automation—now handling complex decision-making, optimizing workflows, and adapting in real time. How will this shape the future of work?\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        360,
+        200
+      ],
+      "id": "02dfd6b4-c644-4bc9-aed5-17ddf7c024e8",
+      "name": "Creating LinkedIn ideas",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://www.artificial-intelligence.blog/ai-news?format=rss",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        -120
+      ],
+      "id": "08114e7d-9154-47e1-8e46-0df070f51fc6",
+      "name": "Get articles"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0825b3e0-7a45-468c-9f7e-67b13931a7d5",
+              "leftValue": "={{ $json.message.content.is_related }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        -80
+      ],
+      "id": "f8565e27-063e-4a29-aac9-deb6f425da63",
+      "name": "Drop articles that are not about our niche"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4",
+          "mode": "list",
+          "cachedResultName": "Linkedin posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Idea": "={{ $json.output.Idea }}",
+            "Description": "={{ $json.output.Description }}",
+            "title": "={{ $('Get articles').item.json.title }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Idea",
+              "displayName": "Idea",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Implications",
+              "displayName": "Implications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "significance",
+              "displayName": "significance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "LinkedIN posts",
+              "displayName": "LinkedIN posts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        780,
+        200
+      ],
+      "id": "62837ad1-2ae3-47e7-b834-2ee9fe02ae54",
+      "name": "Put the idea and description in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ugpyltO1vW4sTXNh",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "Milestonify@gmail.com",
+        "subject": "Approve this LinkedIn post",
+        "message": "={{ $json['LinkedIN posts'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        360,
+        620
+      ],
+      "id": "f0a263ee-cbc0-4094-a22e-ff7a8e94f54a",
+      "name": "Approve the Post",
+      "webhookId": "d02fbd12-1904-41fc-b99d-7649ba85b65f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NtUJOvb3VBruIASH",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4",
+          "mode": "list",
+          "cachedResultName": "Linkedin posts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FGqfjLlEmguOZU9vSBCm2HP0WTHY5yYY-Ks4kxMz7M4/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=title",
+              "lookupValue": "={{ $('Get articles').item.json.title }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        680,
+        -260
+      ],
+      "id": "028aa63c-1493-452d-bedc-c5f376d491f0",
+      "name": "Search for entries",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ugpyltO1vW4sTXNh",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "title",
+        "joinMode": "keepNonMatches",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1040,
+        -140
+      ],
+      "id": "3707cc6d-0886-49c6-b89a-8a0f52549b05",
+      "name": "Filter out already scraped articels"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        120,
+        200
+      ],
+      "id": "e461b1c3-6a23-437e-9050-2fa5509c866f",
+      "name": "Pick 1 Article"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Role:\nYou are an AI assistant specializing in extracting key insights from provided content.\n\nTask:\nAnalyze the given text: {{ $json.choices[0].message.content }} and extract the following structured information:\n\nIdea.\nDescription.\nSignificance.\nImplications.\n\nInstructions:\n\n1. Read the input carefully and identify the core idea.\n2. Extract a clear and concise Idea statement.\n3. Summarize the Description in a structured manner.\n4. Identify the key benefits and provide a Significance section.\n5. Determine the broader effects and outline them under Implications.\n6. Return the extracted details in a structured format.\n\nRules:\n\n- Maintain clarity and conciseness.\n- Ensure the extracted content aligns with the original meaning.\n- Use professional and precise language.\n- Return the output in this JSON format:\njson\n\n{\n  \"Idea\": \"<Extracted Idea>\",\n  \"Description\": \"<Extracted Description>\",\n  \"Significance\": \"<Extracted Significance>\",\n  \"Implications\": \"<Extracted Implications>\"\n}\n\nExample Input:\n\n\"Idea\":\"AI Agents Expanding with n8n Integration\",\"Description\":\"AI agents are rapidly growing in capability and scope, particularly through integration with workflow automation platforms like n8n. This expansion is enabling more complex, autonomous task execution across various business processes. n8n's AI Agent node allows users to easily incorporate AI-powered decision-making and task completion into their automated workflows, significantly enhancing the potential of AI agents in real-world applications.\",\"Significance\":\"The integration of AI agents with workflow automation tools like n8n represents a significant leap forward in practical AI implementation. It allows businesses to automate more sophisticated processes that previously required human intervention, potentially leading to increased efficiency, reduced errors, and cost savings across various industries.\",\"Statistics\":\"According to n8n's documentation, their AI Agent node supports over 400 integrations, allowing AI agents to interact with a vast array of tools and services. A survey by IBM and Morning Consult found that 99% of developers building AI applications for enterprise are exploring or developing AI agents.\",\"Implications\":\"Professionals in AI and automation fields should prepare for a shift towards more integrated, intelligent workflow systems. This may require developing skills in both AI agent programming and workflow automation tools like n8n. Additionally, there may be increased demand for specialists who can design and implement complex, AI-driven automated processes across various business functions.\"\n\nexample output:\n\n{\n  \"Idea\": \"AI Agents Expanding with n8n Integration\",\n  \"Description\": \"AI agents are advancing rapidly, especially when integrated with workflow automation platforms like n8n. This enables more complex, autonomous task execution. n8n’s AI Agent node simplifies incorporating AI-powered decision-making and automation into workflows.\",\n  \"Significance\": \"This integration enhances business automation, reducing manual intervention, improving efficiency, and cutting costs. It represents a major step forward in AI-driven automation.\",\n  \"Implications\": \"AI and automation professionals should develop expertise in AI agent programming and workflow automation. The growing adoption of AI-driven processes will increase demand for specialists who can implement intelligent, automated systems.\"\n}\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1260,
+        200
+      ],
+      "id": "a6cb94c1-7a39-4352-bfbb-41ffdc4fa140",
+      "name": "Split out data from perplexity",
+      "credentials": {
+        "openAiApi": {
+          "id": "GgvCwcPhIr8AAP5D",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Perplexity": {
+      "main": [
+        [
+          {
+            "node": "Split out data from perplexity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create LinkedIn post": {
+      "main": [
+        [
+          {
+            "node": "Update Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved": {
+      "main": [
+        []
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Data": {
+      "main": [
+        [
+          {
+            "node": "Approve the Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic ": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Create LinkedIn post",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter articles about your niche": {
+      "main": [
+        [
+          {
+            "node": "Drop articles that are not about our niche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Creating LinkedIn ideas",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Creating LinkedIn ideas",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creating LinkedIn ideas": {
+      "main": [
+        [
+          {
+            "node": "Put the idea and description in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get articles": {
+      "main": [
+        [
+          {
+            "node": "Search for entries",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter out already scraped articels",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Drop articles that are not about our niche": {
+      "main": [
+        [
+          {
+            "node": "Pick 1 Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Put the idea and description in sheet": {
+      "main": [
+        [
+          {
+            "node": "Perplexity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve the Post": {
+      "main": [
+        [
+          {
+            "node": "Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search for entries": {
+      "main": [
+        [
+          {
+            "node": "Filter out already scraped articels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter out already scraped articels": {
+      "main": [
+        [
+          {
+            "node": "Filter articles about your niche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick 1 Article": {
+      "main": [
+        [
+          {
+            "node": "Creating LinkedIn ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split out data from perplexity": {
+      "main": [
+        [
+          {
+            "node": "Create LinkedIn post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8d15e273-f74a-4556-9e71-506b3160c33b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "50618e78906785f75ac298c8b090bb3bd6406a17352da71ebb8b85e6df90fa3a"
+  },
+  "id": "uvVVx1iWnCoq8lcO",
+  "tags": []
+}
