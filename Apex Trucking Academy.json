@@ -1,0 +1,763 @@
+{
+  "name": "Apex Trucking Academy",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1fEdgvzsuSEOXMRvSbDxRyeUq7AYU5WCjzsUOtXmDtUI",
+          "mode": "list",
+          "cachedResultName": "Apex Trucking Academy",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fEdgvzsuSEOXMRvSbDxRyeUq7AYU5WCjzsUOtXmDtUI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "completions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fEdgvzsuSEOXMRvSbDxRyeUq7AYU5WCjzsUOtXmDtUI/edit#gid=0"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2782bbec-2965-46d4-86cc-9cd0378c46d7",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "Sf4cmdxNooFdy3wU",
+          "name": "Google Sheets Trigger OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4c873a9f-1bfa-4dc7-b860-e5ccd3e644df",
+              "leftValue": "={{ $json['Student Name'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b542f026-b59f-4c5c-b060-fc9f506ba212",
+              "leftValue": "={{ $json['License Type'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "85305106-43cf-4b78-9b7c-15ff211544f5",
+              "leftValue": "={{ $json['Instructor Name'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "b5eb0c2d-9aa5-4274-9fba-6eead0718ff5",
+      "name": "IF - Mandatory Fields Present"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        416,
+        96
+      ],
+      "id": "6b26a8cb-5492-44a2-babe-32dc9fdc559b",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b178cc2f-946c-4f3c-9b56-8af40a18e00f",
+              "name": "Student Name",
+              "value": "={{ $json['Student Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "a2ced9a8-a0ef-4bc0-90fa-19f6cc521a68",
+              "name": "Instructor Name",
+              "value": "={{ $json['Instructor Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "c934ff65-be92-4cb9-ae98-8716d1df2c89",
+              "name": "License Type",
+              "value": "={{ $json['License Type'] }}",
+              "type": "string"
+            },
+            {
+              "id": "f4c7d72f-81e0-45f9-bca8-f6791cdc74c7",
+              "name": "Fast Track",
+              "value": "={{ $json['Fast Track'] }}",
+              "type": "string"
+            },
+            {
+              "id": "12a5a433-3178-477a-89a6-1d1ba2c33427",
+              "name": "Completion Date",
+              "value": "={{ $json['Completion Date'] }}",
+              "type": "string"
+            },
+            {
+              "id": "5442772a-3b20-44d8-8e3b-d250fffdeada",
+              "name": "received_at",
+              "value": "={{ $now.toFormat('yyyy-mm-dd') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "1abff65f-5738-4f3d-ad10-bea5176b7575",
+      "name": "Set - Normalize Student Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "70136c4e-b22a-49d8-9b14-f223326ab323",
+              "leftValue": "={{ $json['Fast Track'] }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "89309754-20d6-4667-b679-c97faa2504fa",
+      "name": "IF - is Student Fast-Track?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "11ad04ad-15a9-44b6-b8b0-504bfc2af71f",
+              "name": "message_prefix",
+              "value": "Urgent - Fast-Track Student",
+              "type": "string"
+            },
+            {
+              "id": "b91b0c6d-b0eb-4a66-9546-6b13b406541e",
+              "name": "Student Name",
+              "value": "={{ $json['Student Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "b1ea806b-aba6-49e3-b2f1-4858c24086f8",
+              "name": "Instructor Name",
+              "value": "={{ $json['Instructor Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "fe7e1892-f42d-4226-81ef-39f14a64a0ad",
+              "name": "License Type",
+              "value": "={{ $json['License Type'] }}",
+              "type": "string"
+            },
+            {
+              "id": "7bf40a48-6ea7-43c8-a85a-6085ae045c13",
+              "name": "Fast Track",
+              "value": "={{ $json['Fast Track'] }}",
+              "type": "string"
+            },
+            {
+              "id": "449f2624-6e13-45c6-bdca-a08e28b65467",
+              "name": "Completion Date",
+              "value": "={{ $json['Completion Date'] }}",
+              "type": "string"
+            },
+            {
+              "id": "c50f5a0e-8127-406b-9f8f-cd592ff03638",
+              "name": "received_at",
+              "value": "={{ $json.received_at }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        -160
+      ],
+      "id": "272abd6d-2fd9-43ae-ad60-2bfcf9ceca77",
+      "name": "Set - Add Urgent Prefix"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d0f906ab-a1f6-4391-94e8-2633dcffdaab",
+              "name": "message_prefix",
+              "value": "=Milestone completed",
+              "type": "string"
+            },
+            {
+              "id": "b1cd1f22-41c0-41bb-abc7-af410079284e",
+              "name": "Student Name",
+              "value": "={{ $json['Student Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "ab7e84d8-5937-4230-bfe9-c36d55fe162f",
+              "name": "Instructor Name",
+              "value": "={{ $json['Instructor Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "87de5fa9-e038-463f-8209-1342fefd85ae",
+              "name": "License Type",
+              "value": "={{ $json['License Type'] }}",
+              "type": "string"
+            },
+            {
+              "id": "1d1a5770-429a-4f70-9828-deb67185295f",
+              "name": "Fast Track",
+              "value": "={{ $json['Fast Track'] }}",
+              "type": "string"
+            },
+            {
+              "id": "3cb9c365-82f4-4481-b1cc-d8132dc10914",
+              "name": "Completion Date",
+              "value": "={{ $json['Completion Date'] }}",
+              "type": "string"
+            },
+            {
+              "id": "0cafafed-5309-47a6-adbb-21089d8590db",
+              "name": "received_at",
+              "value": "={{ $json.received_at }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "d263aa12-a7d9-43b8-bfd4-795a59cbf7c9",
+      "name": "Set - Standard Prefix(Regular )"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1104,
+        -32
+      ],
+      "id": "db62d511-bf6b-4d5b-bdef-e42306881e41",
+      "name": "Merge - Combine Prefix Paths"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json['License Type'] }}",
+                    "rightValue": "Class A",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e9e94f48-fc0b-4e77-bad5-a4a515565805"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Class A"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "07b523eb-03fc-4ca0-961b-6b9ab4d67105",
+                    "leftValue": "={{ $json['License Type'] }}",
+                    "rightValue": "Class B",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Class B"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1312,
+        -32
+      ],
+      "id": "1cc55ba9-9583-4ef4-ac07-164f764b59b7",
+      "name": "Switch - Route by License Type"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AUZ6C14TU",
+          "mode": "list",
+          "cachedResultName": "licensing-desk"
+        },
+        "text": "={{ $('Merge - Combine Prefix Paths').item.json.message_prefix }}\n\n*CDL CLASS A - BEHIND THE WHEEL HOURS COMPLETE.*\n\n👤*Student Name:* {{ $('Merge - Combine Prefix Paths').item.json['Student Name'] }}\n\n👨*Instructor Name:* {{ $('Merge - Combine Prefix Paths').item.json['Instructor Name'] }}\n\n🧾*License Type:* {{ $('Merge - Combine Prefix Paths').item.json['License Type'] }}\n\n🎇*Fast Track:* {{ $('Merge - Combine Prefix Paths').item.json['Fast Track'] }}\n\n📆*Completion Date:*{{ $('Merge - Combine Prefix Paths').item.json['Completion Date'] }}\n\n⌚*Logged At:* {{ $('Merge - Combine Prefix Paths').item.json.received_at }}\n\n📌*Next Step:* Schedule state exam immediately. Contract student to confirm availability.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1520,
+        -128
+      ],
+      "id": "f52843ea-5a84-4bf9-a6cc-a3117e8d861f",
+      "name": "Slack - Notify #licensing-desk",
+      "webhookId": "118c0461-c047-48c9-a40e-ff41c12b7795",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "PetpRRsosLOur9d4",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        752,
+        272
+      ],
+      "id": "a4fd510c-b0f2-47b9-9940-16bb3d0eb838",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1fEdgvzsuSEOXMRvSbDxRyeUq7AYU5WCjzsUOtXmDtUI",
+          "mode": "list",
+          "cachedResultName": "Apex Trucking Academy",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fEdgvzsuSEOXMRvSbDxRyeUq7AYU5WCjzsUOtXmDtUI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1730194146,
+          "mode": "list",
+          "cachedResultName": "Error Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fEdgvzsuSEOXMRvSbDxRyeUq7AYU5WCjzsUOtXmDtUI/edit#gid=1730194146"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toFormat('yyyy-mm-dd') }}",
+            "Error Message": "={{ $json.execution.error.message }}",
+            "Execution ID": "={{ $json.execution.id }}",
+            "Node": "={{ $json.execution.lastNodeExecuted }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Error Message",
+              "displayName": "Error Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Execution ID",
+              "displayName": "Execution ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Node",
+              "displayName": "Node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        960,
+        272
+      ],
+      "id": "b7aa1096-1227-4a50-b4dc-333e6ceb7142",
+      "name": "Log - Write Error to Error log Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FdznwUMSqF53sJkd",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## TRIGGER\nsheet trigger fires on new row\n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -64,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "20489589-edc2-46e6-9799-3298e6f63aea",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "##  IF\nvalidate mandatory fields present"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        112,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "7c2444c9-25dd-4b90-b94f-035c558750ee",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## SET\nNormalize all data"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        304,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "c471c52e-1973-4fda-bec2-867f617974fe",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "##  FAST TRACK\ncheck fast track status -> set message prefix"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        576,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "d6965c2a-9893-4198-809e-f31cebad4cf1",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## MERGE\nmerge both prefix path\n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1024,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "858bef1c-3618-40d5-bc33-e29030e893b5",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## SWITCH\nswitch by license Type"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1216,
+        144
+      ],
+      "typeVersion": 1,
+      "id": "800d4f21-32db-4fe4-b184-885a2f5bdcac",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AUX4MJSRL",
+          "mode": "list",
+          "cachedResultName": "fleet-coordinators"
+        },
+        "text": "={{ $('Set - Standard Prefix(Regular )').item.json.message_prefix }}\n\n*CDL CLASS B - BEHIND THE WHEEL HOURS COMPLETE*\n\n👤*Student Name:* {{ $('Set - Standard Prefix(Regular )').item.json['Student Name'] }}\n\n👨*Instructor Name:* {{ $('Set - Standard Prefix(Regular )').item.json['Instructor Name'] }}\n\n🧾*License Type:* {{ $('Set - Standard Prefix(Regular )').item.json['License Type'] }}\n\n🎇*Fast-Track:* {{ $('Set - Standard Prefix(Regular )').item.json['Fast Track'] }}\n\n📆*completion date:* {{ $('Set - Standard Prefix(Regular )').item.json['Completion Date'] }}\n\n⌚*Logged at:* {{ $('Set - Standard Prefix(Regular )').item.json.received_at }}\n\n\n📌*Next step:* Coordinate with the fleet team and book the class B road test.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1520,
+        64
+      ],
+      "id": "0bcba4a9-dc8a-449c-a088-4d502a5b684c",
+      "name": "Slack - Notify #fleet-coordination",
+      "webhookId": "8560dd44-f196-4fd7-b8a6-5aee9a18a42e",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "PetpRRsosLOur9d4",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "IF - Mandatory Fields Present",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Mandatory Fields Present": {
+      "main": [
+        [
+          {
+            "node": "Set - Normalize Student Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Normalize Student Data": {
+      "main": [
+        [
+          {
+            "node": "IF - is Student Fast-Track?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - is Student Fast-Track?": {
+      "main": [
+        [
+          {
+            "node": "Set - Add Urgent Prefix",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Standard Prefix(Regular )",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Standard Prefix(Regular )": {
+      "main": [
+        [
+          {
+            "node": "Merge - Combine Prefix Paths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Add Urgent Prefix": {
+      "main": [
+        [
+          {
+            "node": "Merge - Combine Prefix Paths",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge - Combine Prefix Paths": {
+      "main": [
+        [
+          {
+            "node": "Switch - Route by License Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Route by License Type": {
+      "main": [
+        [
+          {
+            "node": "Slack - Notify #licensing-desk",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Notify #fleet-coordination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Log - Write Error to Error log Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "jB40RqdAYBa3u8HK",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "b887b4da-9e25-4b04-b8eb-31854e90b4f8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eaf6d5418c11e79f1efa1b281ee8dfe8188518c3314460872c96288623f12fdc"
+  },
+  "id": "jB40RqdAYBa3u8HK",
+  "tags": []
+}

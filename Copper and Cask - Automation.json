@@ -1,0 +1,1099 @@
+{
+  "name": "Copper and Cask - Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shift-report",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "592839ef-6c8c-4ab7-bf64-bf293d129b5a",
+      "name": "Webhook - Shift Report Intake - End of Shift Webhook",
+      "webhookId": "afb70c0b-f2ef-480b-a518-8c6104625c1c"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "62760fa6-548d-4a59-8ad6-7104be21ba26",
+              "name": "batch_id",
+              "value": "={{ $json.body.batch_id }}",
+              "type": "string"
+            },
+            {
+              "id": "614559ff-d799-4c93-9c69-d0f389352ea7",
+              "name": "product_type",
+              "value": "={{ $json.body.product_type }}",
+              "type": "string"
+            },
+            {
+              "id": "b0bb8279-6a2c-4375-8a61-1b466f9ab596",
+              "name": "distiller_name",
+              "value": "={{ $json.body.distiller_name }}",
+              "type": "string"
+            },
+            {
+              "id": "d4afc49e-da52-433a-887d-5b87d9be325c",
+              "name": "shift_date",
+              "value": "={{ $json.body.date ?? $now.toFormat('yyyy-MM-dd')}}",
+              "type": "string"
+            },
+            {
+              "id": "9fb3c74d-2e45-4bc4-8e40-5062faa19f53",
+              "name": "ambient_temp",
+              "value": "={{ $json.body.ambient_temp }}",
+              "type": "number"
+            },
+            {
+              "id": "706bef92-834e-4f4f-91b9-ae77ef82b9ad",
+              "name": "batch_ph",
+              "value": "={{ $json.body.batch_ph }}",
+              "type": "number"
+            },
+            {
+              "id": "69fc9061-bcda-48de-beb7-11b4baf21963",
+              "name": "specific_gravity",
+              "value": "={{ $json.body.specific_gravity ? Number($json.body.specific_gravity) : null}}",
+              "type": "number"
+            },
+            {
+              "id": "3b45e352-a942-48ba-a9fe-d365d4d431a7",
+              "name": "shift_notes",
+              "value": "={{ $json.body.shift_notes }}",
+              "type": "string"
+            },
+            {
+              "id": "fb636b30-ab54-45cb-a0e3-16eca3739014",
+              "name": "received_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "555cbc02-409d-4a9e-961b-b42d1973ed25",
+      "name": "Set - Normalize Shift Report Data"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \"Batch ID: \" + $json.batch_id + \"\\nProduct Type: \" + $json.product_type + \"\\nDistiller: \" + $json.distiller_name + \"\\nShift Date: \" + $json.shift_date + \"\\nAmbient Temperature: \" + $json.ambient_temp + \"°F\\nBatch pH: \" + $json.batch_ph + \"\\nSpecific Gravity: \" + $json.specific_gravity + \"\\n\\nDistiller Notes:\\n\" + $json.shift_notes }}",
+        "options": {
+          "systemMessage": "=You are a production triage AI for Copper & Cask Distillery, a micro-distillery and meadery producing small-batch spirits and honey-based wines.\n\nYour job is to analyze end-of-shift reports from distillers and categorize them into exactly ONE primary triage category while also flagging any secondary issues.\n\nTRIAGE CATEGORIES:\n\nCritical Alert — Use when the notes mention ANY of:\n- Equipment failure, leaks, pressure issues, seal failures\n- Unusual smells (burning, chemical, sulfur beyond normal)\n- Safety risks or hazards\n- Fermentation stall (gravity not dropping over multiple days)\n- Temperature out of safe range (below 60F or above 80F for fermentation)\n- Contamination signs (unusual colors, films, off-smells beyond normal)\n- pH outside safe range (below 3.0 or above 6.5)\n\nInventory Needs — Use when the notes mention ANY of:\n- Running low on supplies (yeast, hops, honey, botanicals, sanitizers, barrels)\n- Need to reorder any ingredient or chemical\n- Almost out of any item needed for next batch\n- No critical or safety issues present\n\nRoutine Log — Use when:\n- Batch is progressing normally with no issues\n- Technical readings are within normal ranges\n- No supply shortages mentioned\n- Distiller reports everything is on track\n\nNORMAL RANGES FOR REFERENCE:\n- Fermentation temp: 60-80°F\n- Mead/wine pH: 3.0-4.0\n- Whiskey/gin mash pH: 4.5-5.5\n- Specific gravity starting: 1.040-1.120 depending on product\n\nIf BOTH critical and inventory issues exist, primary category is ALWAYS Critical.\nIf BOTH inventory and routine exist, primary category is Inventory.\n\nFor inventory items, extract each item separately with quantity and unit if mentioned.\n\nRespond in this exact JSON format and nothing else:\n{\n  \"primary_category\": \"Critical Alert\",\n  \"confidence\": \"High\",\n  \"ai_summary\": \"2-3 sentence summary of the shift highlighting the most important findings\",\n  \"critical_issues\": [\"Issue 1 description\", \"Issue 2 description\"],\n  \"inventory_items\": [\n    {\n      \"item_name\": \"Lalvin EC-1118 Yeast\",\n      \"quantity_needed\": 10,\n      \"unit\": \"packets\",\n      \"urgency\": \"High\"\n    }\n  ],\n  \"technical_assessment\": \"One sentence assessment of pH, gravity and temperature readings\",\n  \"recommended_action\": \"Specific action the project manager should take\"\n}\n\nRules:\n- primary_category must be exactly one of: Critical Alert, Inventory Needs, Routine Log\n- confidence must be exactly one of: High, Medium, Low\n- critical_issues is an array of strings — empty array if no critical issues\n- inventory_items is an array of objects — empty array if no inventory issues\n- Do not wrap response in markdown code blocks\n- Do not add any text outside the JSON object\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        -16
+      ],
+      "id": "8ec33289-82ee-4c43-bb26-064ebadece64",
+      "name": "AI Agent - Production Triage Analyst"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        288,
+        192
+      ],
+      "id": "75bad2dd-f971-4423-9b45-feee216b409d",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "es0A3feugoZsdQ0n",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.primary_category }}",
+                    "rightValue": "Critical Alert",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "859983b6-1c8a-482e-b9be-9eadb96e180a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Critical Alert"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "bdddf540-66d3-48a8-8175-eecaf70db23b",
+                    "leftValue": "={{ $json.primary_category }}",
+                    "rightValue": "Inventory Needs",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Inventory Needs"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4a2781ea-ea40-4d43-aa56-e2e8dfd2a334",
+                    "leftValue": "={{ $json.primary_category }}",
+                    "rightValue": "Routine Log",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Routine Log"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        976,
+        -16
+      ],
+      "id": "e130a65e-3120-4bb6-8169-f4532c743793",
+      "name": "Switch - Route by Triage Category - Critical, Inventory, or Routine"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  // Get shift data from normalize node\n  const shiftData = $('Set - Normalize Shift Report Data').first().json;\n\n  try {\n    const raw = item.json.output ?? '';\n    const cleaned = raw.replace(/```json|```/g, '').trim();\n    const parsed = JSON.parse(cleaned);\n\n    // Validate primary category\n    const validCategories = ['Critical Alert', 'Inventory Needs', 'Routine Log'];\n    const category = validCategories.includes(parsed.primary_category)\n      ? parsed.primary_category\n      : 'Routine Log';\n\n    return {\n      json: {\n        // AI results\n        primary_category: category,\n        confidence: parsed.confidence ?? 'Medium',\n        ai_summary: parsed.ai_summary ?? 'Summary not available',\n        critical_issues: parsed.critical_issues ?? [],\n        inventory_items: parsed.inventory_items ?? [],\n        technical_assessment: parsed.technical_assessment ?? '',\n        recommended_action: parsed.recommended_action ?? '',\n        parse_error: false,\n\n        // Shift metadata carried forward\n        batch_id: shiftData.batch_id,\n        product_type: shiftData.product_type,\n        distiller_name: shiftData.distiller_name,\n        shift_date: shiftData.shift_date,\n        ambient_temp: shiftData.ambient_temp,\n        batch_ph: shiftData.batch_ph,\n        specific_gravity: shiftData.specific_gravity,\n        shift_notes: shiftData.shift_notes,\n        received_at: shiftData.received_at\n      }\n    };\n\n  } catch(error) {\n    // Parse failed — default to Routine Log and flag error\n    return {\n      json: {\n        primary_category: 'Routine Log',\n        confidence: 'Low',\n        ai_summary: 'AI output could not be parsed. Manual review required.',\n        critical_issues: [],\n        inventory_items: [],\n        technical_assessment: 'Unable to assess — parse error',\n        recommended_action: 'Manual review of shift report required',\n        parse_error: true,\n\n        batch_id: shiftData.batch_id,\n        product_type: shiftData.product_type,\n        distiller_name: shiftData.distiller_name,\n        shift_date: shiftData.shift_date,\n        ambient_temp: shiftData.ambient_temp,\n        batch_ph: shiftData.batch_ph,\n        specific_gravity: shiftData.specific_gravity,\n        shift_notes: shiftData.shift_notes,\n        received_at: shiftData.received_at\n      }\n    };\n  }\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -16
+      ],
+      "id": "dffeccae-1e63-49a8-bb79-b90d54dc8aeb",
+      "name": "Code - Parse AI Triage JSON Output"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0B1FGPLUA0",
+          "mode": "list",
+          "cachedResultName": "production-alerts"
+        },
+        "text": "=🚨*CRITICAL PRODUCTION ALERT - Immediate Action Required*\n\n<!channel> A critical issue has been detected in end-of-shift report.\n\n*Batch ID:* {{ $json.batch_id }}\n\n*Product Type:* {{ $json.product_type }}\n\n*Distiller:* {{ $json.distiller_name }}\n\n*Shift Date:* {{ $json.shift_date }}\n\n*AI Confidence:* {{ $json.confidence }}\n\n*Technical Readings:*\n\n-Ambient Temp: {{ $json.ambient_temp }}F\n\n-Batch PH: {{ $json.batch_ph }}\n\n-Specific Gravity: {{ $json.specific_gravity }}\n\n*Critical Issues Detected:* \n\n{{ $json.critical_issues.map((issue, i) => `${i + 1}.${issue}`).join('\\n') }}\n\n*AI Summary:*\n\n{{ $json.ai_summary }}\n\n*Recommended Action:*\n\n{{ $json.recommended_action }}\n\nPlease respond immediately. Distiller notes: _{{ $json.shift_notes.substring(0, 300) }}..._",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1216,
+        -304
+      ],
+      "id": "a4fef32d-12c8-494e-9187-81323eaf9543",
+      "name": "Slack - Send Critical Production Alert",
+      "webhookId": "dbb3a01b-ae3e-4d50-b4a8-35d932d551c0",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "vLo3L458ffAoNoHm",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst items = data.inventory_items ?? [];\n\nif (items.length === 0) {\n  return [{\n    json: {\n      ...data,\n      item_name: 'Unspecified Item',\n      quantity_needed: 0,\n      unit: 'units',\n      urgency: 'Medium'\n    }\n  }];\n}\n\nreturn items.map(item => ({\n  json: {\n    ...data,\n    item_name: item.item_name ?? 'Unknown Item',\n    quantity_needed: item.quantity_needed ?? 0,\n    unit: item.unit ?? 'units',\n    urgency: item.urgency ?? 'Medium'\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        0
+      ],
+      "id": "73fcb31e-86bc-4e5a-8250-e0683e7760d3",
+      "name": "Code - Expand Inventory Items for Sheet Append"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1UtnOKBhoidLt-a5w1w_l4hn6Dw6Ir1oGperJd2pG7H8",
+          "mode": "list",
+          "cachedResultName": "Copper and Cask Operations",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UtnOKBhoidLt-a5w1w_l4hn6Dw6Ir1oGperJd2pG7H8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1149933488,
+          "mode": "list",
+          "cachedResultName": "Restock List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UtnOKBhoidLt-a5w1w_l4hn6Dw6Ir1oGperJd2pG7H8/edit#gid=1149933488"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.received_at }}",
+            "Batch ID": "={{ $json.batch_id }}",
+            "Item Name": "={{ $json.item_name }}",
+            "Quantity Needed": "={{ $json.quantity_needed }}",
+            "Unit": "={{ $json.unit }}",
+            "Urgency": "={{ $json.urgency }}",
+            "Distller Name": "={{ $json.distiller_name }}",
+            "Notes": "={{ $json.ai_summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Batch ID",
+              "displayName": "Batch ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Item Name",
+              "displayName": "Item Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quantity Needed",
+              "displayName": "Quantity Needed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Unit",
+              "displayName": "Unit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Urgency",
+              "displayName": "Urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Distller Name",
+              "displayName": "Distller Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1504,
+        0
+      ],
+      "id": "6fcb78e2-efba-4cb6-9c61-2aecab7158bc",
+      "name": "Sheets - Append Restock Items to Restock Tab",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appIaKENRKUKAXLAW",
+          "mode": "list",
+          "cachedResultName": "Copper and Cask - Production Log",
+          "cachedResultUrl": "https://airtable.com/appIaKENRKUKAXLAW"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblHdH7BeaGoXmKkc",
+          "mode": "list",
+          "cachedResultName": "Batch Records",
+          "cachedResultUrl": "https://airtable.com/appIaKENRKUKAXLAW/tblHdH7BeaGoXmKkc"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "AmbientTemp": "={{ $json.ambient_temp }}",
+            "BatchPH": "={{ $json.batch_ph }}",
+            "SpecificGravity": "={{ $json.specific_gravity }}",
+            "BatchID": "={{ $json.batch_id }}",
+            "ProductType": "={{ $json.product_type }}",
+            "DistillerName": "={{ $json.distiller_name }}",
+            "RawShiftNotes": "Routine check completed. Temperatures holding steady despite the humidity."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "﻿Date",
+              "displayName": "﻿Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "BatchID",
+              "displayName": "BatchID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ProductType",
+              "displayName": "ProductType",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Small Batch Bourbon",
+                  "value": "Small Batch Bourbon"
+                },
+                {
+                  "name": "Blackberry Mead",
+                  "value": "Blackberry Mead"
+                },
+                {
+                  "name": "Rye Whiskey",
+                  "value": "Rye Whiskey"
+                },
+                {
+                  "name": "Botanical Gin",
+                  "value": "Botanical Gin"
+                },
+                {
+                  "name": "Wildflower Mead",
+                  "value": "Wildflower Mead"
+                },
+                {
+                  "name": "Spiced Rum",
+                  "value": "Spiced Rum"
+                },
+                {
+                  "name": "Apple Brandy",
+                  "value": "Apple Brandy"
+                },
+                {
+                  "name": "Orange Blossom Mead",
+                  "value": "Orange Blossom Mead"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "DistillerName",
+              "displayName": "DistillerName",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Marcus Thorne",
+                  "value": "Marcus Thorne"
+                },
+                {
+                  "name": "Elena Rodriguez",
+                  "value": "Elena Rodriguez"
+                },
+                {
+                  "name": "Sam Thompson",
+                  "value": "Sam Thompson"
+                },
+                {
+                  "name": "Sarah Jenkins",
+                  "value": "Sarah Jenkins"
+                },
+                {
+                  "name": "David O'Malley",
+                  "value": "David O'Malley"
+                },
+                {
+                  "name": "Chloe Chen",
+                  "value": "Chloe Chen"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AmbientTemp",
+              "displayName": "AmbientTemp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "BatchPH",
+              "displayName": "BatchPH",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "SpecificGravity",
+              "displayName": "SpecificGravity",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "RawShiftNotes",
+              "displayName": "RawShiftNotes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Fermentation is steady. No issues to report.",
+                  "value": "Fermentation is steady. No issues to report."
+                },
+                {
+                  "name": "We are running very low on Star San and yeast nutrients. Need to restock by Monday.",
+                  "value": "We are running very low on Star San and yeast nutrients. Need to restock by Monday."
+                },
+                {
+                  "name": "URGENT: Fermenter 4 seal is showing signs of cracking. Needs immediate inspection.",
+                  "value": "URGENT: Fermenter 4 seal is showing signs of cracking. Needs immediate inspection."
+                },
+                {
+                  "name": "Routine check completed. Temperatures holding steady despite the humidity.",
+                  "value": "Routine check completed. Temperatures holding steady despite the humidity."
+                },
+                {
+                  "name": "Need 50lbs of wildflower honey for the next batch. We are out.",
+                  "value": "Need 50lbs of wildflower honey for the next batch. We are out."
+                },
+                {
+                  "name": "The cooling jacket on the mash tun is making a strange grinding noise. Potential pump failure.",
+                  "value": "The cooling jacket on the mash tun is making a strange grinding noise. Potential pump failure."
+                },
+                {
+                  "name": "Batch looks stalled. Gravity hasn't moved in 48 hours. Might need to pitch more yeast.",
+                  "value": "Batch looks stalled. Gravity hasn't moved in 48 hours. Might need to pitch more yeast."
+                },
+                {
+                  "name": "Gravity is dropping as expected. Smells great.",
+                  "value": "Gravity is dropping as expected. Smells great."
+                },
+                {
+                  "name": "Inventory check: Down to our last 2 bags of malted barley. Please order 10 more.",
+                  "value": "Inventory check: Down to our last 2 bags of malted barley. Please order 10 more."
+                },
+                {
+                  "name": "Standard distillation run. Yield was slightly higher than average.",
+                  "value": "Standard distillation run. Yield was slightly higher than average."
+                },
+                {
+                  "name": "Found a small leak at the base of the still. Mopped it up but needs a technician.",
+                  "value": "Found a small leak at the base of the still. Mopped it up but needs a technician."
+                },
+                {
+                  "name": "Transfer to secondary vessel complete. PH is within target range.",
+                  "value": "Transfer to secondary vessel complete. PH is within target range."
+                },
+                {
+                  "name": "Running low on glass bottles (750ml). Only half a pallet left.",
+                  "value": "Running low on glass bottles (750ml). Only half a pallet left."
+                },
+                {
+                  "name": "Fermentation activity is vigorous. High krausen observed.",
+                  "value": "Fermentation activity is vigorous. High krausen observed."
+                },
+                {
+                  "name": "Everything is running like clockwork today. Cheers!",
+                  "value": "Everything is running like clockwork today. Cheers!"
+                },
+                {
+                  "name": "Order more corks. The current bag is nearly empty.",
+                  "value": "Order more corks. The current bag is nearly empty."
+                },
+                {
+                  "name": "Botanicals look good. Juniper supply is healthy.",
+                  "value": "Botanicals look good. Juniper supply is healthy."
+                },
+                {
+                  "name": "Batch smells slightly sulfurous. Increasing temp by 2 degrees to off-gas.",
+                  "value": "Batch smells slightly sulfurous. Increasing temp by 2 degrees to off-gas."
+                },
+                {
+                  "name": "Safety check passed. Floor drains cleared.",
+                  "value": "Safety check passed. Floor drains cleared."
+                },
+                {
+                  "name": "Notes for next shift: Keep an eye on the ambient temp, the AC is acting up.",
+                  "value": "Notes for next shift: Keep an eye on the ambient temp, the AC is acting up."
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1296,
+        352
+      ],
+      "id": "19f83e89-122d-4524-a4c2-91963d87aece",
+      "name": "Airtable - Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "2fWidWoAfa52kfBH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        464,
+        368
+      ],
+      "id": "d26b8a43-ccab-4380-b2bc-927dbfa6de5f",
+      "name": "Global Error Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1UtnOKBhoidLt-a5w1w_l4hn6Dw6Ir1oGperJd2pG7H8",
+          "mode": "list",
+          "cachedResultName": "Copper and Cask Operations",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UtnOKBhoidLt-a5w1w_l4hn6Dw6Ir1oGperJd2pG7H8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 662699211,
+          "mode": "list",
+          "cachedResultName": "Error Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UtnOKBhoidLt-a5w1w_l4hn6Dw6Ir1oGperJd2pG7H8/edit#gid=662699211"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "Error Message": "={{ $json.execution.error.message }}",
+            "Execution ID": "={{ $json.execution.id }}",
+            "Node Name": "={{ $json.execution.lastNodeExecuted }}",
+            "Action Taken": "Logged automatically - Manual Review is needed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Error Message",
+              "displayName": "Error Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Node Name",
+              "displayName": "Node Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Execution ID",
+              "displayName": "Execution ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Action Taken",
+              "displayName": "Action Taken",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        368
+      ],
+      "id": "ba9cdb6a-93d5-4114-a0d7-8240cca4fec3",
+      "name": "Sheets - Log Failure to Error Log Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0B18K5JYBF",
+          "mode": "list",
+          "cachedResultName": "system-alerts-copper"
+        },
+        "text": "=🔴*Copper and Cask - Workflow Error*\n\n\n*Error:* {{ $json['Error Message'] ?? \"Unknown Error\"}}\n\n*Node:* {{ $json['Node Name'] ?? \"Unknown Node\"}}\n\n*Time:* {{ $now.toISO() }}\n\n*Execution ID:* {{ $json['Execution ID'] ?? \"Unknown ID\"}}\n\n\n-> A Shift report may not have been processed. Check n8n immediately.\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        848,
+        368
+      ],
+      "id": "70517fff-fa65-4d24-ab4b-1d243b326d68",
+      "name": "Slack - Alert Admin of Workflow Failure",
+      "webhookId": "a09b7402-8dcd-408f-a0f6-6efbc9b16864",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "vLo3L458ffAoNoHm",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Webhook Trigger\nreceives POST from distiller form",
+        "height": 112,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -192,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "5141b132-6d1e-4515-baf3-53c5a1921bfa",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Data Normalization\nBatch ID uppercased and trimmed.\nDistiller name title cased\ntechnical readings converted to Number",
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        128,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "8b1b2d2b-971f-4f0a-9e95-18dc497055d9",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## AI Brain\nAI is triage analyst\nanalyzes both technical readings and human shift notees simultaneously.\n",
+        "height": 144,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        416,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "19c49d17-5ca3-4d73-9a85-87053ffdcdd4",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## CODE - Safe JSON Parser\nparse the json response accepted from AI agent node",
+        "height": 144,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        688,
+        144
+      ],
+      "typeVersion": 1,
+      "id": "4b7a14af-8bf7-4381-8318-1307a25f78f3",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Switch - Route by Category\n1. Critical Alert\n2. Inventory Needs\n3. Routine Log",
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        880,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "e055dded-351c-4165-b98c-103f2ff72b6e",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Critical Alert Path\nsends #production-alerts Slack channel",
+        "height": 112,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1376,
+        -336
+      ],
+      "typeVersion": 1,
+      "id": "291f2db0-6515-41e3-8289-8ccbdb527836",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## CODE\nExpand Inventory items with javascript code before appending it to sheet",
+        "height": 128,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1344,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "1d7d3853-7997-4d19-a87f-09f44f235892",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Sheets - Restock\nappend extracted inventory items to restock Log sheet",
+        "height": 112,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1680,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "d2c54477-6ddb-4947-953a-3b87898c90a5",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Global Error Handler\ncatches any crashes or error on the workflow, then log it to error log google sheet and then send an alert error message to the admins of the workflow about the error through slack channel",
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        80,
+        400
+      ],
+      "typeVersion": 1,
+      "id": "e7e7343e-b60e-49c9-ba03-28cb97de7b8f",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## AirTable - Create\ncreate a record on airtable for routine log",
+        "height": 128,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1472,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "04e94b3e-b152-43fd-a04d-f86cac2ff756",
+      "name": "Sticky Note9"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Shift Report Intake - End of Shift Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set - Normalize Shift Report Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Normalize Shift Report Data": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Production Triage Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Production Triage Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Production Triage Analyst": {
+      "main": [
+        [
+          {
+            "node": "Code - Parse AI Triage JSON Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Parse AI Triage JSON Output": {
+      "main": [
+        [
+          {
+            "node": "Switch - Route by Triage Category - Critical, Inventory, or Routine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Route by Triage Category - Critical, Inventory, or Routine": {
+      "main": [
+        [
+          {
+            "node": "Slack - Send Critical Production Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code - Expand Inventory Items for Sheet Append",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable - Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Expand Inventory Items for Sheet Append": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Append Restock Items to Restock Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Log Failure to Error Log Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Log Failure to Error Log Sheet": {
+      "main": [
+        [
+          {
+            "node": "Slack - Alert Admin of Workflow Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "3f8hOS4F1PxyhN2I",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "3abd340e-03e0-4cb4-a642-2e827c8470c8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bb6f1595f07e6272edd57f6434afd9c87f3aa0ecf17c4f671ba5f2c613d40faa"
+  },
+  "id": "3f8hOS4F1PxyhN2I",
+  "tags": []
+}

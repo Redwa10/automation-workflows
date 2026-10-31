@@ -1,0 +1,1257 @@
+{
+  "name": "ClearPath CFO - AI Transaction Categorizer",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b4173767-7a1b-4bf0-8a0d-d85e59e231f1",
+      "name": "Schedule - Hourly Transaction Processor"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds",
+          "mode": "list",
+          "cachedResultName": "ClearPath - CFO - Transaction Categorization",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 486622976,
+          "mode": "list",
+          "cachedResultName": "Transactions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit#gid=486622976"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Processed",
+              "lookupValue": "="
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "db01dfa9-c923-4468-813d-c16fcc6adc8f",
+      "name": "Sheets - Read Unprocessed Transactions",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "daa72f54-f550-4e41-9514-96d51afee21e",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "f56e892f-8997-459a-9ae3-078b7f5b2eda",
+      "name": "IF - Any Transactions to Process?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        624,
+        96
+      ],
+      "id": "7da7e7be-9057-4dab-856a-6d6f7957b39e",
+      "name": "No Transactions - Stop"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\n\n// Read transaction fields\n// Handle both direct field names and possible variations\nconst transactionId   = item[\"TransactionID\"]   || item[\"transactionId\"]   || \"\";\nconst transactionDate = item[\"TransactionDate\"]  || item[\"transactionDate\"] || \"\";\nconst vendorName      = (item[\"VendorName\"]      || item[\"vendorName\"]      || \"\").trim();\nconst amount          = parseFloat(item[\"Amount\"] || item[\"amount\"] || 0);\nconst rawDescription  = (item[\"RawDescription\"]  || item[\"rawDescription\"]  || \"\").trim();\nconst currentLabel    = item[\"CurrentAccountLabel\"] || item[\"currentAccountLabel\"] || \"\";\nconst rowNumber       = item[\"row_number\"] || \"\";\n\n// Edge case 1: Missing or too-short description\nconst descriptionMissing =\n  !rawDescription ||\n  rawDescription.length < 3 ||\n  rawDescription.toLowerCase() === \"n/a\" ||\n  rawDescription.toLowerCase() === \"unknown\" ||\n  rawDescription.toLowerCase() === \"null\";\n\n// Edge case 2: Unusually large amount\n// Flag any transaction above $10,000 for mandatory audit\nconst LARGE_AMOUNT_THRESHOLD = 10000;\nconst isLargeAmount = Math.abs(amount) >= LARGE_AMOUNT_THRESHOLD;\n\n// Build audit flag string\nlet auditFlag = \"None\";\nif (descriptionMissing && isLargeAmount) {\n  auditFlag = \"Missing Description + Large Amount\";\n} else if (descriptionMissing) {\n  auditFlag = \"Missing Description\";\n} else if (isLargeAmount) {\n  auditFlag = \"Large Amount — Review Required\";\n}\n\n// Build the description the AI will see\n// If description is missing use vendor name only\nconst descriptionForAI = descriptionMissing\n  ? `Vendor: ${vendorName || \"Unknown vendor\"} — No description available`\n  : rawDescription;\n\nreturn {\n  transactionId,\n  transactionDate,\n  vendorName,\n  amount,\n  rawDescription,\n  descriptionForAI,\n  currentLabel,\n  rowNumber,\n  auditFlag,\n  descriptionMissing,\n  isLargeAmount,\n  requiresAudit: auditFlag !== \"None\"\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "7096649a-d1c4-4940-ab2f-65477b33c89a",
+      "name": "Code - Pre-Screen for Edge Cases"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a certified public accountant and financial data analyst specializing in startup bookkeeping. Your job is to analyze raw bank transaction descriptions and assign them to the correct Chart of Accounts category.\n\nReturn ONLY a valid JSON object. No explanation. No markdown. No code fences. Just the raw JSON.\n\nThe JSON must follow this exact structure:\n{\n  \"category\": \"one of the exact category names listed below\",\n  \"confidenceScore\": number between 0 and 100,\n  \"reasoning\": \"one to two sentences explaining your categorization decision\",\n  \"alternativeCategory\": \"second most likely category or null if confident\",\n  \"categoryCode\": \"short code as listed below\"\n}\n\nCHART OF ACCOUNTS — ALLOWED CATEGORIES (use exact names):\n- Professional Fees [code: PROF] — lawyers, accountants, consultants, freelancers, advisory services\n- Software/SaaS [code: SOFT] — Zoom, Slack, GitHub, AWS, Azure, Google Workspace, Salesforce, any subscription software\n- Travel & Entertainment [code: TRAV] — airlines, hotels, Uber, Lyft, restaurants, client meals, conferences\n- Utilities [code: UTIL] — electricity, gas, internet, phone bills, water\n- Payroll & Wages [code: PYRL] — Gusto, ADP, direct payroll transfers, contractor payments, Rippling\n- Office Supplies [code: OFFC] — Staples, Amazon (office items), paper, ink, printer supplies\n- Marketing & Advertising [code: MKTG] — Google Ads, Facebook Ads, Mailchimp, Canva, HubSpot, PR agencies\n- Bank Fees & Interest [code: BANK] — bank service charges, wire transfer fees, overdraft fees, interest charges\n- Rent & Facilities [code: RENT] — office rent, coworking spaces, WeWork, storage units, building maintenance\n- Uncategorized [code: UNCAT] — use ONLY when you genuinely cannot determine the category from the information provided\n\nCONFIDENCE SCORE RULES:\n- 90-100: Vendor name and description make the category completely unambiguous\n- 75-89: Strong indicator but some ambiguity exists\n- 50-74: Plausible guess but description is vague or vendor is unknown\n- Below 50: Very uncertain — description is too cryptic to categorize reliably\n- If description is missing and only vendor name is available, cap confidence at 70 maximum\n\nREASONING RULES:\n- Explain what specific words or patterns in the vendor name or description led to your decision\n- If using alternativeCategory, explain why it was considered\n- Be specific — mention the actual vendor name or keywords you used\n- Maximum two sentences\n\nTransaction to categorize:\nTransaction ID: {{ $json.transactionId }}\nVendor Name: {{ $json.vendorName }}\nAmount: ${{ $json.amount }}\nDescription: {{ $json.descriptionForAI }}\nCurrent Label (for reference only): {{ $json.currentLabel }}\nAudit Flag: {{ $json.auditFlag }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "8ed75fc0-4ff0-4ec4-8092-6df3b5f3f439",
+      "name": "Open AI - Categorize Transaction"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        240
+      ],
+      "id": "38cfee7f-315c-47ec-a539-cbd4bb495300",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "es0A3feugoZsdQ0n",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// ── Read raw AI output from all possible field paths ──────────────────────────\nconst j = $input.item.json;\n\nconst rawResponse =\n  j?.message?.content\n  || j?.choices?.[0]?.message?.content\n  || j?.text\n  || j?.content\n  || j?.output\n  || j?.response\n  || \"\";\n\n// ── Pull pre-screened transaction fields from Node 5 ──────────────────────────\nconst node5 = $('Code - Pre-Screen for Edge Cases').item.json;\nconst transactionId   = node5.transactionId   || \"\";\nconst transactionDate = node5.transactionDate || \"\";\nconst vendorName      = node5.vendorName      || \"\";\nconst amount          = node5.amount          || 0;\nconst rawDescription  = node5.rawDescription  || \"\";\nconst currentLabel    = node5.currentLabel    || \"\";\nconst rowNumber       = node5.rowNumber       || \"\";\nconst auditFlag       = node5.auditFlag       || \"None\";\nconst requiresAudit   = node5.requiresAudit   || false;\n\n// ── Clean AI response ─────────────────────────────────────────────────────────\nlet cleanJson = rawResponse.trim();\ncleanJson = cleanJson\n  .replace(/^```(?:json)?\\s*/i, \"\")\n  .replace(/\\s*```$/, \"\")\n  .trim();\ncleanJson = cleanJson.replace(/\\\\n/g, \"\\n\");\n\n// ── Parse ─────────────────────────────────────────────────────────────────────\nlet parsed     = null;\nlet parseError = null;\n\ntry {\n  parsed = JSON.parse(cleanJson);\n} catch (e) {\n  parseError = e.message;\n}\n\n// ── Validate category ─────────────────────────────────────────────────────────\nconst validCategories = [\n  \"Professional Fees\",\n  \"Software/SaaS\",\n  \"Travel & Entertainment\",\n  \"Utilities\",\n  \"Payroll & Wages\",\n  \"Office Supplies\",\n  \"Marketing & Advertising\",\n  \"Bank Fees & Interest\",\n  \"Rent & Facilities\",\n  \"Uncategorized\"\n];\n\nlet category            = null;\nlet confidenceScore     = 0;\nlet reasoning           = \"\";\nlet alternativeCategory = null;\nlet categoryCode        = \"\";\n\nif (parsed) {\n  category = parsed.category || null;\n\n  // Validate category is one of the allowed values\n  if (!validCategories.includes(category)) {\n    parseError = `Invalid category returned: \"${category}\"`;\n    parsed = null;\n    category = null;\n  } else {\n    confidenceScore     = parseInt(parsed.confidenceScore) || 0;\n    reasoning           = parsed.reasoning           || \"\";\n    alternativeCategory = parsed.alternativeCategory || null;\n    categoryCode        = parsed.categoryCode        || \"\";\n\n    // Enforce confidence cap for missing descriptions\n    if (node5.descriptionMissing && confidenceScore > 70) {\n      confidenceScore = 70;\n      reasoning = \"[Confidence capped at 70 — description was missing] \" + reasoning;\n    }\n\n    // Force low confidence if audit flag is present and large amount\n    if (node5.isLargeAmount && confidenceScore > 85) {\n      confidenceScore = 85;\n      reasoning = \"[Confidence capped at 85 — large amount requires review] \" + reasoning;\n    }\n  }\n}\n\n// ── Determine final status ────────────────────────────────────────────────────\n// Even if confidence is high, large amounts or missing descriptions\n// should never be auto-finalized\nconst isHighConfidence = parsed !== null\n  && confidenceScore >= 85\n  && !requiresAudit;\n\nreturn {\n  parseSuccess:       parsed !== null,\n  parseError:         parseError || null,\n  rawAiResponse:      rawResponse,\n  category,\n  categoryCode,\n  confidenceScore,\n  reasoning,\n  alternativeCategory,\n  isHighConfidence,\n  auditFlag,\n  requiresAudit,\n  transactionId,\n  transactionDate,\n  vendorName,\n  amount,\n  rawDescription,\n  currentLabel,\n  rowNumber\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -96
+      ],
+      "id": "35cd771a-3698-488b-83a1-04dd8e3750e4",
+      "name": "Code - Parse AI Categorization Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "419a4bba-7c1e-489b-b939-5c553f08ff5a",
+              "leftValue": "={{ $json.parseSuccess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1392,
+        -96
+      ],
+      "id": "0d93ecc3-6f9d-47ed-aff1-e05f6b874171",
+      "name": "IF - Did AI Return Valid Response?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bc886d97-6b88-45de-877c-aae3152011c6",
+              "leftValue": "={{ $json.isHighConfidence }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1600,
+        -192
+      ],
+      "id": "2afcd1fa-d109-410a-83f5-853e5f79bf04",
+      "name": "IF - Confidence Score >= 85?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds",
+          "mode": "list",
+          "cachedResultName": "ClearPath - CFO - Transaction Categorization",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 486622976,
+          "mode": "list",
+          "cachedResultName": "Transactions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit#gid=486622976"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "TransactionID": "={{ $json.transactionId }}",
+            "AI Category": "={{ $json.category }}",
+            "Confidence Score": "={{ $json.confidenceScore }}",
+            "AI Reasoning": "={{ $json.reasoning }}",
+            "Audit Flag": "={{ $json.auditFlag }}",
+            "Status": "Finalized",
+            "Processed": "Yes",
+            "Processed Timestamp": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "TransactionID"
+          ],
+          "schema": [
+            {
+              "id": "TransactionID",
+              "displayName": "TransactionID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "TransactionDate",
+              "displayName": "TransactionDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VendorName",
+              "displayName": "VendorName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "RawDescription",
+              "displayName": "RawDescription",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CurrentAccountLabel",
+              "displayName": "CurrentAccountLabel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "AI Category",
+              "displayName": "AI Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confidence Score",
+              "displayName": "Confidence Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Reasoning",
+              "displayName": "AI Reasoning",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Audit Flag",
+              "displayName": "Audit Flag",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed",
+              "displayName": "Processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed Timestamp",
+              "displayName": "Processed Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1808,
+        -288
+      ],
+      "id": "8bc6e3fe-8bdc-444c-9390-d86d669cfc47",
+      "name": "Sheets - Mark Row as Finalized",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds",
+          "mode": "list",
+          "cachedResultName": "ClearPath - CFO - Transaction Categorization",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1150611532,
+          "mode": "list",
+          "cachedResultName": "Needs Review",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit#gid=1150611532"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Flagged Timestamp": "={{ $now.toISO() }}",
+            "Transaction ID": "={{ $json.transactionId }}",
+            "Transaction Date": "={{ $json.transactionDate }}",
+            "Vendor Name": "={{ $json.vendorName }}",
+            "Amount": "={{ $json.amount }}",
+            "Raw Description": "={{ $json.rawDescription }}",
+            "AI Category": "={{ $json.category }}",
+            "Confidence Score": "={{ $json.confidenceScore }}",
+            "AI Reasoning": "={{ $json.reasoning }}",
+            "Audit Flag": "={{ $json.auditFlag }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Flagged Timestamp",
+              "displayName": "Flagged Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Transaction ID",
+              "displayName": "Transaction ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Transaction Date",
+              "displayName": "Transaction Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Vendor Name",
+              "displayName": "Vendor Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Raw Description",
+              "displayName": "Raw Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Category",
+              "displayName": "AI Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confidence Score",
+              "displayName": "Confidence Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Reasoning",
+              "displayName": "AI Reasoning",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Audit Flag",
+              "displayName": "Audit Flag",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reviewer Notes",
+              "displayName": "Reviewer Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resolution",
+              "displayName": "Resolution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1808,
+        -96
+      ],
+      "id": "6294fcfb-4a91-4178-ab4d-76a43fecf190",
+      "name": "Sheets - Append to Needs Review Tab",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds",
+          "mode": "list",
+          "cachedResultName": "ClearPath - CFO - Transaction Categorization",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 486622976,
+          "mode": "list",
+          "cachedResultName": "Transactions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit#gid=486622976"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "TransactionID": "={{ $json['Transaction ID'] }}",
+            "AI Category": "={{ $json['AI Category'] }}",
+            "Confidence Score": "={{ $json['Confidence Score'] }}",
+            "AI Reasoning": "={{ $json['AI Reasoning'] }}",
+            "Audit Flag": "={{ $json['Audit Flag'] }}",
+            "Status": "Finalized",
+            "Processed": "Yes",
+            "Processed Timestamp": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "TransactionID"
+          ],
+          "schema": [
+            {
+              "id": "TransactionID",
+              "displayName": "TransactionID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "TransactionDate",
+              "displayName": "TransactionDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "VendorName",
+              "displayName": "VendorName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "RawDescription",
+              "displayName": "RawDescription",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "CurrentAccountLabel",
+              "displayName": "CurrentAccountLabel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "AI Category",
+              "displayName": "AI Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confidence Score",
+              "displayName": "Confidence Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Reasoning",
+              "displayName": "AI Reasoning",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Audit Flag",
+              "displayName": "Audit Flag",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed",
+              "displayName": "Processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed Timestamp",
+              "displayName": "Processed Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2016,
+        -96
+      ],
+      "id": "79df9ece-c3a7-4680-81d2-499d94c95e17",
+      "name": "Sheets - Update Original Row - Mark Processed",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        256
+      ],
+      "id": "df3e27e2-aea2-4bca-ad0e-cd041828e1e7",
+      "name": "Global Error Trigger"
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com",
+        "subject": "🔴ClearPath CFO - Categorization Workflow Error",
+        "emailType": "text",
+        "message": "=🔴 WORKFLOW ERROR\n\nClearPath CFO - Transaction Categorizer\n\nError: {{ $json.execution.error.message }}\n\nNode: {{ $json.execution.lastNodeExecuted }}\n\nExecution ID: {{ $json.execution.id }}\n\nTime: {{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}\n\nWorkflow: {{ $json.workflow.name }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        256
+      ],
+      "id": "5e6b7268-b88b-4024-a88d-ad9a9b3e1408",
+      "name": "Gmail - Email Admin - workflow Error",
+      "webhookId": "11f46e0e-b506-4577-9f66-695cbdb5dc5a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds",
+          "mode": "list",
+          "cachedResultName": "ClearPath - CFO - Transaction Categorization",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 621329204,
+          "mode": "list",
+          "cachedResultName": "Error Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nVqfpZnUUek8djQ2pjMsd5SHTScLrFPbOJVQkw228ds/edit#gid=621329204"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "Transaction ID": "={{ $('Code - Parse AI Categorization Response').item.json.transactionId }}",
+            "Vendor Name": "={{ $('Code - Parse AI Categorization Response').item.json.vendorName }}",
+            "Raw Description": "={{ $('Code - Parse AI Categorization Response').item.json.rawDescription }}",
+            "Raw AI Response": "={{ $('Code - Parse AI Categorization Response').item.json.rawAiResponse }}",
+            "Error Message": "={{ $('Code - Parse AI Categorization Response').item.json.parseError }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Transaction ID",
+              "displayName": "Transaction ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Vendor Name",
+              "displayName": "Vendor Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Raw Description",
+              "displayName": "Raw Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Raw AI Response",
+              "displayName": "Raw AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Error Message",
+              "displayName": "Error Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1600,
+        0
+      ],
+      "id": "41e1812a-63d2-4134-ba02-ac2a05443701",
+      "name": "Sheet - Log Parse Error",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Schedule Trigger\nfires every hour",
+        "height": 80,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -160,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "bc2d7fc5-1533-467f-b3cb-870fc5c0b2ef",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Sheet - GET\nreads every unprocessed data from the Transactions google sheet \nProcessed column is empty",
+        "height": 144
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        96,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "a8dac0ed-1494-4d09-814e-413647dd7a9c",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## IF\nchecks if there is any transaction to process, transactions that are new",
+        "height": 112,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        288,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "a59295db-b268-4a86-9475-c2a140a3167f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## CODE - Pre-screening Logic\nruns before AI call - flags issues early\n1. Missing Description\n2. Large Amount\n3. Both",
+        "height": 192,
+        "width": 272,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        544,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "2a8245de-a7fa-4b12-ad72-c60c4d9be1a0",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## No-Op\nif there is no transaction to process then Do Nothing",
+        "height": 112,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        512,
+        224
+      ],
+      "typeVersion": 1,
+      "id": "a2d22bd5-e44c-48ce-ac5d-ab6223cbe232",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "##  AI Categorization\non AI call per transaction row, it returns: category, confidenceScore, reasoning, alternativeCategory, category based on the given prompt",
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        880,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "10d71cf5-12af-43fe-aeb3-2ab6251dbef6",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "##  CODE - Parsing\ndefensive parsing, Strips code fences and escaped newlines\nEnforce confidence caps:\nMissing description -> 70\nLarge amount -> 85",
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1120,
+        48
+      ],
+      "typeVersion": 1,
+      "id": "257e75e9-db14-4e44-b480-507edd960f68",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "##  IF - Error Handler\nchecks if the parsed data received from the AI agent is valid or not",
+        "height": 144,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1280,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "64f80ae9-1797-42ac-9bf1-84203cf56cbc",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## IF - Confidence Score\nif confidence Score >= 85\nmark the transaction status as finalized on the transactions sheet\n",
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1552,
+        -368
+      ],
+      "typeVersion": 1,
+      "id": "c19ca229-ad34-4a0f-8c4e-23860b96d3cb",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## IF - Confidence Score\nif Confidence Score is < 85\nappend the transaction to Need Review sheet for further review",
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1840,
+        80
+      ],
+      "typeVersion": 1,
+      "id": "89223537-a5a3-4f0d-911f-0a451da2b768",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "## Sheet - Update\nafter review update the status of the transaction sheet original row and mark it as finalized",
+        "height": 128,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2016,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "114825c6-99ec-4d4d-b7ff-e209fe8aea27",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "## Global Error Handler\nCatches any error on the workflow and then send an alert message to the admins through email.",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        976,
+        224
+      ],
+      "typeVersion": 1,
+      "id": "45dba187-1596-485d-a1ad-97444a89d809",
+      "name": "Sticky Note11"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule - Hourly Transaction Processor": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Read Unprocessed Transactions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Read Unprocessed Transactions": {
+      "main": [
+        [
+          {
+            "node": "IF - Any Transactions to Process?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Any Transactions to Process?": {
+      "main": [
+        [
+          {
+            "node": "Code - Pre-Screen for Edge Cases",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Transactions - Stop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Pre-Screen for Edge Cases": {
+      "main": [
+        [
+          {
+            "node": "Open AI - Categorize Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Open AI - Categorize Transaction",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open AI - Categorize Transaction": {
+      "main": [
+        [
+          {
+            "node": "Code - Parse AI Categorization Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Parse AI Categorization Response": {
+      "main": [
+        [
+          {
+            "node": "IF - Did AI Return Valid Response?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Did AI Return Valid Response?": {
+      "main": [
+        [
+          {
+            "node": "IF - Confidence Score >= 85?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheet - Log Parse Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Confidence Score >= 85?": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Mark Row as Finalized",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets - Append to Needs Review Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Append to Needs Review Tab": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Update Original Row - Mark Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Email Admin - workflow Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "9Siegcjrbi2OuJYy",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "234f77fb-974b-47e4-98a6-31e8af82cfc3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bb6f1595f07e6272edd57f6434afd9c87f3aa0ecf17c4f671ba5f2c613d40faa"
+  },
+  "id": "9Siegcjrbi2OuJYy",
+  "tags": []
+}

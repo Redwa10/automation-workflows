@@ -1,0 +1,1347 @@
+{
+  "name": "ClearDesk AI - Meeting-to-Task-Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I",
+          "mode": "list",
+          "cachedResultName": "ClearDesk - Meeting Pipeline Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1293893562,
+          "mode": "list",
+          "cachedResultName": "Form responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I/edit#gid=1293893562"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4101977f-cac6-46f5-9a3b-ff7a3a095a2f",
+      "name": "Sheets - New Submission Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "mWZq9wOgUxxOO7Yb",
+          "name": "Google Sheets Trigger OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4d8e5616-a4d4-44da-98f9-59c68e48c12c",
+              "name": "meetingTitle",
+              "value": "={{ $json['Meeting Title'] }}",
+              "type": "string"
+            },
+            {
+              "id": "4af99df9-6e7e-4646-a560-e05ccdb3c61f",
+              "name": "meetingDate",
+              "value": "={{ $json['Meeting Date'] }}",
+              "type": "string"
+            },
+            {
+              "id": "0b132121-b792-4120-a9d0-e8d9fad580d9",
+              "name": "organizerEmail",
+              "value": "={{ $json['Organizer Email'] }}",
+              "type": "string"
+            },
+            {
+              "id": "e27425d2-7553-41d2-b86c-a723740404a4",
+              "name": "attendeeEmails",
+              "value": "={{ $json['Attendee Emails'] }}",
+              "type": "string"
+            },
+            {
+              "id": "d90e7c0e-c4f6-4d3f-be15-8ab377a06169",
+              "name": "transcript",
+              "value": "={{ $json['Meeting Transcript'] }}",
+              "type": "string"
+            },
+            {
+              "id": "aa96aa05-10d3-4abe-b141-a21e40e361c9",
+              "name": "submissionTimestamp",
+              "value": "={{ $json.Timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "757f0241-528d-48b8-8fed-ed8f45afd720",
+              "name": "assignee",
+              "value": "={{ $json.Assignee }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "4d37308a-db0b-4438-a555-7abe69588f6e",
+      "name": "Set - Clean and Prepare Form Fields"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        288,
+        208
+      ],
+      "id": "ed32f044-8d13-49fe-8782-08ea7c5343b4",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "es0A3feugoZsdQ0n",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\nYou are a legal operations assistant for ClearDesk Consulting, a family and immigration law firm. You will receive a raw meeting transcript and must extract structured information from it.\n\nReturn ONLY a valid JSON object. Do not include any explanation, markdown, code fences, or text outside the JSON. The JSON must follow this exact structure:\n\n{\n  \"summary\": \"Three sentence executive summary of the meeting.\",\n  \"decisions\": [\n    \"Decision one made during the meeting.\",\n    \"Decision two made during the meeting.\"\n  ],\n  \"actionItems\": [\n    {\n      \"description\": \"Full description of the task\",\n      \"assignee\": \"First Last or null if unassigned\",\n      \"dueDate\": \"YYYY-MM-DD or null if not mentioned\",\n      \"priority\": \"High or Medium or Low\"\n    }\n  ],\n  \"attendeeNames\": [\n    \"First Last\"\n  ]\n}\n\nRules:\n- summary must be exactly 3 sentences.\n- decisions is an array of strings. If no decisions were made, return an empty array.\n- actionItems is an array of objects. If no action items exist, return an empty array.\n- For assignee: if the transcript does not name a specific person for a task, set assignee to null.\n- For dueDate: use YYYY-MM-DD format. If no date is mentioned, set to null.\n- priority: infer from urgency language. Default to Medium if unclear.\n- attendeeNames: list all people mentioned by name in the transcript.\n- Return nothing except the JSON object.\n\nMeeting Title: {{ $json.meetingTitle }}\nMeeting Date: {{ $json.meetingDate }}\n\nTranscript:\n{{ $json.transcript }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "2c7b50b9-4554-402c-8509-54621061c9ec",
+      "name": "AI Agent - Extract Structured Meeting Data"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// ── Read raw AI text from every possible field location ──────────────────────\nconst j = $input.item.json;\n\nconst rawResponse =\n  j?.message?.content                    // standard chat completion\n  || j?.choices?.[0]?.message?.content   // raw OpenAI API format\n  || j?.text                             // older n8n OpenAI node\n  || j?.content                          // some n8n versions\n  || j?.output                           // fallback\n  || j?.response                         // fallback\n  || \"\";\n\n// ── Pull meeting metadata from Node 2 ────────────────────────────────────────\nconst meetingTitle       = $('Set - Clean and Prepare Form Fields').first().json.meetingTitle || \"\";\nconst meetingDate        = $('Set - Clean and Prepare Form Fields').first().json.meetingDate || \"\";\nconst organizerEmail     = $('Set - Clean and Prepare Form Fields').first().json.organizerEmail || \"\";\nconst attendeeEmails     = $('Set - Clean and Prepare Form Fields').first().json.attendeeEmails || \"\";\nconst submissionTimestamp = $('Set - Clean and Prepare Form Fields').first().json.submissionTimestamp || \"\";\n\n// ── Clean the response ────────────────────────────────────────────────────────\nlet cleanJson = rawResponse.trim();\n\n// Strip markdown code fences (```json ... ``` or ``` ... ```)\ncleanJson = cleanJson\n  .replace(/^```(?:json)?\\s*/i, \"\")\n  .replace(/\\s*```$/,           \"\")\n  .trim();\n\n// Replace literal \\n escape sequences with real newlines\n// This fixes the {\\n\"summary\":... pattern you are seeing\ncleanJson = cleanJson.replace(/\\\\n/g, \"\\n\");\n\n// ── Parse ─────────────────────────────────────────────────────────────────────\nlet parsed     = null;\nlet parseError = null;\n\ntry {\n  parsed = JSON.parse(cleanJson);\n} catch (e) {\n  parseError = e.message;\n}\n\n// ── Validate fields ───────────────────────────────────────────────────────────\nif (parsed) {\n  if (!parsed.summary)                        parsed.summary       = \"Summary not available.\";\n  if (!Array.isArray(parsed.decisions))       parsed.decisions     = [];\n  if (!Array.isArray(parsed.actionItems))     parsed.actionItems   = [];\n  if (!Array.isArray(parsed.attendeeNames))   parsed.attendeeNames = [];\n}\n\n// ── Return ────────────────────────────────────────────────────────────────────\nreturn {\n  parseSuccess:       parsed !== null,\n  parseError:         parseError || null,\n  rawAiResponse:      rawResponse,\n  cleanJsonAttempted: cleanJson,\n  summary:            parsed?.summary       || null,\n  decisions:          parsed?.decisions     || [],\n  actionItems:        parsed?.actionItems   || [],\n  attendeeNames:      parsed?.attendeeNames || [],\n  meetingTitle,\n  meetingDate,\n  organizerEmail,\n  attendeeEmails,\n  submissionTimestamp\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "0e746410-5000-44c3-8bd6-6ff1ffdc86a0",
+      "name": "Code - parse and Validate AI JSON Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "05bb4999-aaa1-48c6-9747-89bac8147d7b",
+              "leftValue": "={{ $json.parseSuccess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        976,
+        0
+      ],
+      "id": "5594da0b-6922-4b5a-a49b-942ab66f03cf",
+      "name": "IF - Did AI Return Valid JSON?"
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com",
+        "subject": "=⚠ ClearDesk Pipeline - AI Parse Failed:  {{ $('Code - parse and Validate AI JSON Response').item.json.meetingTitle }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px;\">\n  <div style=\"background: #7f0000; padding: 16px; border-radius: 8px 8px 0 0;\">\n    <h2 style=\"color: white; margin: 0;\">⚠️ AI JSON Parse Failed</h2>\n    <p style=\"color: #ffcdd2; margin: 4px 0 0 0;\">ClearDesk Meeting Pipeline</p>\n  </div>\n  <div style=\"background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; border-radius: 0 0 8px 8px;\">\n    <p>The AI returned a response that could not be parsed as valid JSON.\n    Manual processing is required for this meeting.</p>\n    <table style=\"width:100%; border-collapse:collapse; margin: 16px 0;\">\n      <tr>\n        <td style=\"padding:8px; border-bottom:1px solid #ddd; font-weight:bold; background:#f1f3f5; width:35%;\">Meeting Title</td>\n        <td style=\"padding:8px; border-bottom:1px solid #ddd;\">{{ $('Code - parse and Validate AI JSON Response').item.json.meetingTitle }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:8px; border-bottom:1px solid #ddd; font-weight:bold; background:#f1f3f5;\">Meeting Date</td>\n        <td style=\"padding:8px; border-bottom:1px solid #ddd;\">{{ $('Code - parse and Validate AI JSON Response').item.json.meetingDate }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:8px; border-bottom:1px solid #ddd; font-weight:bold; background:#f1f3f5;\">Organizer</td>\n        <td style=\"padding:8px; border-bottom:1px solid #ddd;\">{{ $('Code - parse and Validate AI JSON Response').item.json.organizerEmail }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:8px; border-bottom:1px solid #ddd; font-weight:bold; background:#f1f3f5;\">Parse Error</td>\n        <td style=\"padding:8px; border-bottom:1px solid #ddd; color:#c0392b;\">{{ $('Code - parse and Validate AI JSON Response').item.json.parseError }}</td>\n      </tr>\n    </table>\n    <p><strong>Raw AI Response:</strong></p>\n    <pre style=\"background:#1e1e1e; color:#d4d4d4; padding:12px; border-radius:4px; font-size:12px; overflow-x:auto; white-space:pre-wrap;\">{{ $('Code - parse and Validate AI JSON Response').item.json.rawAiResponse }}</pre>\n  </div>\n</div>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        96
+      ],
+      "id": "df10d47b-ef35-4b3a-940d-f99f0bf46dd0",
+      "name": "Gmail - Admin AI Parse Failed",
+      "webhookId": "a605986a-6e81-43d0-bf71-bd6614f66149",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the parsed AI data from Node 4\nconst data = $('Code - parse and Validate AI JSON Response').first().json;\n\nconst actionItems = data.actionItems || [];\nconst meetingTitle = data.meetingTitle || \"\";\nconst meetingDate = data.meetingDate || \"\";\nconst organizerEmail = data.organizerEmail || \"\";\nconst attendeeEmails = data.attendeeEmails || \"\";\nconst summary = data.summary || \"\";\nconst decisions = data.decisions || [];\n\n// If no action items at all, return one placeholder\n// so the workflow continues to the archive + email steps\nif (actionItems.length === 0) {\n  return [{\n    json: {\n      noActionItems: true,\n      meetingTitle,\n      meetingDate,\n      organizerEmail,\n      attendeeEmails,\n      summary,\n      decisions,\n      totalActionItems: 0,\n      description: null,\n      assignee: null,\n      dueDate: null,\n      priority: null,\n      isUnassigned: false\n    }\n  }];\n}\n\n// Return one item per action item\nreturn actionItems.map((item, index) => {\n  const assigneeRaw = (item.assignee || \"\").toString().trim();\n  const isUnassigned = !assigneeRaw\n    || assigneeRaw.toLowerCase() === \"null\"\n    || assigneeRaw.toLowerCase() === \"tbd\"\n    || assigneeRaw.toLowerCase() === \"unassigned\"\n    || assigneeRaw.toLowerCase() === \"n/a\";\n\n  return {\n    json: {\n      noActionItems: false,\n      meetingTitle,\n      meetingDate,\n      organizerEmail,\n      attendeeEmails,\n      summary,\n      decisions,\n      totalActionItems: actionItems.length,\n      description: item.description || \"No description provided\",\n      assignee: isUnassigned ? null : assigneeRaw,\n      dueDate: item.dueDate || null,\n      priority: item.priority || \"Medium\",\n      isUnassigned,\n      actionItemIndex: index\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -96
+      ],
+      "id": "e1fabcad-dc04-4d6e-829c-b5805b83e2e1",
+      "name": "Code - Split Action Items into Individual Records"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4078eff7-59d9-431c-a545-0258f528307a",
+              "leftValue": "={{ $json.isUnassigned }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1392,
+        -96
+      ],
+      "id": "da2e8196-31c9-4b50-a69b-942c9d2c007d",
+      "name": "IS This Action Item Unassigned?"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I",
+          "mode": "list",
+          "cachedResultName": "ClearDesk - Meeting Pipeline Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 144378051,
+          "mode": "list",
+          "cachedResultName": "Task Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I/edit#gid=144378051"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Meeting Title": "={{ $json.meetingTitle }}",
+            "Task Description": "={{ $json.description }}",
+            "Assignee": "={{ $json.assignee }}",
+            "Due Date": "={{ $json.dueDate }}",
+            "Priority": "={{ $json.priority }}",
+            "Status": "Open",
+            "Meeting Date": "={{ $json.meetingDate }}",
+            "Date Logged": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Meeting Title",
+              "displayName": "Meeting Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Task Description",
+              "displayName": "Task Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Assignee",
+              "displayName": "Assignee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Due Date",
+              "displayName": "Due Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Meeting Date",
+              "displayName": "Meeting Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date Logged",
+              "displayName": "Date Logged",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1600,
+        0
+      ],
+      "id": "84fe36ef-bdd0-41ee-9657-affe5cc2e6f4",
+      "name": "Sheets - Append Assigned Task to Task Tracker",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1e5b34eb-4175-48e8-94b0-af407deb1595",
+              "name": "flaggedAsOrphan",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        -192
+      ],
+      "id": "da19186b-ad40-4621-a90e-0390a429b84c",
+      "name": "Set - Flag Unassigned Task"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1840,
+        -96
+      ],
+      "id": "089de5ba-ae51-4e42-92ba-249a8226169c",
+      "name": "Merge - All Processed Action Items"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I",
+          "mode": "list",
+          "cachedResultName": "ClearDesk - Meeting Pipeline Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 56125631,
+          "mode": "list",
+          "cachedResultName": "Meeting Archive",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I/edit#gid=56125631"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Meeting Title": "={{ $('Code - Split Action Items into Individual Records').item.json.meetingTitle }}",
+            "Meeting Date": "={{ $('Code - Split Action Items into Individual Records').item.json.meetingDate }}",
+            "Organizer": "={{ $('Code - Split Action Items into Individual Records').item.json.organizerEmail }}",
+            "Attendee Count": "={{ $('Code - Split Action Items into Individual Records').item.json.attendeeEmails.split(',').length }}",
+            "Total Action Items": "={{ $('Code - Split Action Items into Individual Records').item.json.totalActionItems }}",
+            "AI Summary": "={{ $('Code - Split Action Items into Individual Records').item.json.summary }}",
+            "Processed Timestamp": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Meeting Title",
+              "displayName": "Meeting Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Meeting Date",
+              "displayName": "Meeting Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Organizer",
+              "displayName": "Organizer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Attendee Count",
+              "displayName": "Attendee Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Action Items",
+              "displayName": "Total Action Items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Unassigned Count",
+              "displayName": "Unassigned Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Summary",
+              "displayName": "AI Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Processed Timestamp",
+              "displayName": "Processed Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2048,
+        -96
+      ],
+      "id": "9071ddce-1659-4e4e-8301-f67087b6987c",
+      "name": "Sheets - Append Meeting to Archive Sheet",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst allItems = $input.all();\n\n// Count items flagged as orphans\nconst unassignedItems = allItems.filter(item => item.json.flaggedAsOrphan === true);\nconst unassignedCount = unassignedItems.length;\n\n// Build a list of unassigned task descriptions for the alert email\nconst unassignedList = unassignedItems.map(item => ({\n  description: item.json.description || \"No description\",\n  priority: item.json.priority || \"Medium\",\n  dueDate: item.json.dueDate || \"Not specified\"\n}));\n\n// Carry forward meeting metadata from first item\nconst first = allItems[0]?.json || {};\n\nreturn [{\n  json: {\n    unassignedCount,\n    unassignedList,\n    hasUnassigned: unassignedCount > 0,\n    meetingTitle: first.meetingTitle,\n    meetingDate: first.meetingDate,\n    organizerEmail: first.organizerEmail,\n    attendeeEmails: first.attendeeEmails,\n    summary: first.summary,\n    decisions: first.decisions,\n    totalActionItems: first.totalActionItems\n  }\n}];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        -96
+      ],
+      "id": "d07979f6-2b57-4480-b791-c3e420035eb9",
+      "name": "Code - Count Unassigned Tasks"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a19066f7-1ab8-4482-8bec-3771b11575ff",
+              "leftValue": "={{ $json.hasUnassigned }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2464,
+        -96
+      ],
+      "id": "302dd05c-889a-4117-8058-4cab6cd2c8f2",
+      "name": "if - were There Unassigned Tasks?"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Sheets - Append Meeting to Archive Sheet').item.json.Organizer }}",
+        "subject": "=⚠ Action Required - {{ $('Code - Count Unassigned Tasks').item.json.unassignedCount }} Unassigned Task(s) from {{ $('Sheets - Append Meeting to Archive Sheet').item.json['Meeting Title'] }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto;\">\n  <div style=\"background: #1a237e; padding: 20px; border-radius: 8px 8px 0 0;\">\n    <h2 style=\"color: #e8eaf6; margin: 0;\">⚠️ Unassigned Tasks — Action Required</h2>\n    <p style=\"color: #9fa8da; margin: 4px 0 0 0;\">ClearDesk Consulting · Meeting Pipeline</p>\n  </div>\n  <div style=\"background: #f8f9fa; padding: 24px; border: 1px solid #dee2e6; border-radius: 0 0 8px 8px;\">\n    <p>Hi,</p>\n    <p>The following action items from <strong>{{ $('Sheets - Append Meeting to Archive Sheet').item.json['Meeting Title'] }}</strong>\n    ({{ $('Sheets - Append Meeting to Archive Sheet').item.json['Meeting Date'] }}) do not have an assigned owner. Please assign\n    a team member to each task as soon as possible to avoid missed deadlines.</p>\n\n    <table style=\"width:100%; border-collapse:collapse; margin: 20px 0;\">\n      <tr style=\"background:#1a237e; color:white;\">\n        <td style=\"padding:10px 14px; font-weight:bold;\">Task Description</td>\n        <td style=\"padding:10px 14px; font-weight:bold;\">Priority</td>\n        <td style=\"padding:10px 14px; font-weight:bold;\">Due Date</td>\n      </tr>\n      {{ $('Code - Count Unassigned Tasks').item.json.unassignedList.map((task, i) => `\n      <tr style=\"background:${i % 2 === 0 ? '#ffffff' : '#f1f3f5'}\">\n        <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6;\">${task.description}</td>\n        <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6; color:#c62828; font-weight:bold;\">${task.priority}</td>\n        <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6;\">${task.dueDate}</td>\n      </tr>`).join('') }}\n    </table>\n\n    <p>Please update the Task Tracker sheet with the appropriate assignees and\n    reply to this email once complete.</p>\n    <p style=\"color:#666; font-size:12px; margin-top:20px;\">\n      Automated alert from ClearDesk AI Meeting Pipeline.\n    </p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2672,
+        -192
+      ],
+      "id": "3840791e-c321-4e6b-863d-69a08ccf73a6",
+      "name": "Gmail - Organizer - Unassigned Task Alert",
+      "webhookId": "5b5a12f0-fad5-4b95-b9b4-e2ccdbf1250c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Merge - All Processed Action Items').item.json.attendeeEmails }}",
+        "subject": "=📋Meeting Summary -  {{ $('Merge - All Processed Action Items').item.json.meetingTitle }} | {{ $('Merge - All Processed Action Items').item.json.meetingDate }}",
+        "message": "=<div style=\"font-family: Georgia, serif; max-width: 680px; margin: 0 auto; color: #1a1a2e;\">\n\n  <div style=\"background: #1a237e; padding: 28px; border-radius: 8px 8px 0 0;\">\n    <h1 style=\"color: #e8eaf6; margin: 0; font-size: 22px; font-weight: normal; letter-spacing: 0.5px;\">\n      📋 Meeting Summary\n    </h1>\n    <p style=\"color: #9fa8da; margin: 8px 0 0 0; font-size: 15px;\">\n      {{ $('Merge - All Processed Action Items').item.json.meetingTitle }} · {{ $('Merge - All Processed Action Items').item.json.meetingDate }}\n    </p>\n  </div>\n\n  <div style=\"background: #ffffff; padding: 32px; border-left: 1px solid #dee2e6; border-right: 1px solid #dee2e6;\">\n\n    <h2 style=\"color: #1a237e; font-size: 16px; border-bottom: 2px solid #e8eaf6; padding-bottom: 8px;\">\n      Executive Summary\n    </h2>\n    <p style=\"line-height: 1.8; color: #333; font-size: 15px;\">\n      {{ $('Merge - All Processed Action Items').item.json.summary }}\n    </p>\n\n    <h2 style=\"color: #1a237e; font-size: 16px; border-bottom: 2px solid #e8eaf6; padding-bottom: 8px; margin-top: 28px;\">\n      Decisions Made\n    </h2>\n    {{ $('Merge - All Processed Action Items').item.json.decisions.length > 0\n      ? '<ul style=\"line-height:2; color:#333; font-size:15px;\">' +\n        $('Merge - All Processed Action Items').item.json.decisions.map(d => `<li>${d}</li>`).join('') +\n        '</ul>'\n      : '<p style=\"color:#888; font-style:italic;\">No formal decisions recorded.</p>'\n    }}\n\n    <h2 style=\"color: #1a237e; font-size: 16px; border-bottom: 2px solid #e8eaf6; padding-bottom: 8px; margin-top: 28px;\">\n      Action Items\n    </h2>\n\n    <table style=\"width:100%; border-collapse:collapse; font-size:14px;\">\n      <tr style=\"background:#1a237e; color:white;\">\n        <td style=\"padding:10px 14px; font-weight:bold;\">Task</td>\n        <td style=\"padding:10px 14px; font-weight:bold;\">Assignee</td>\n        <td style=\"padding:10px 14px; font-weight:bold;\">Due Date</td>\n        <td style=\"padding:10px 14px; font-weight:bold;\">Priority</td>\n      </tr>\n      {{ $('Code - Split Action Items into Individual Records').all()\n        .map((item, i) => `\n        <tr style=\"background:${i % 2 === 0 ? '#f8f9fa' : '#ffffff'}\">\n          <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6;\">${item.json.description || ''}</td>\n          <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6; color:${item.json.isUnassigned ? '#c62828' : '#2e7d32'}; font-weight:bold;\">\n            ${item.json.isUnassigned ? '⚠️ Unassigned' : (item.json.assignee || '')}\n          </td>\n          <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6;\">${item.json.dueDate || 'TBD'}</td>\n          <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6;\">${item.json.priority || 'Medium'}</td>\n        </tr>`).join('')\n      }}\n    </table>\n\n    <p style=\"color:#666; font-size:12px; margin-top:28px; border-top:1px solid #dee2e6; padding-top:16px;\">\n      This summary was automatically generated by the ClearDesk AI Meeting Pipeline.\n      If you notice any inaccuracies, please contact the meeting organizer at\n      {{ $json.organizerEmail }}.\n    </p>\n\n  </div>\n\n  <div style=\"background:#1a237e; padding:16px 28px; border-radius:0 0 8px 8px;\">\n    <p style=\"color:#9fa8da; font-size:12px; margin:0;\">\n      ClearDesk Consulting · Legal Operations Automation · Confidential\n    </p>\n  </div>\n\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2848,
+        0
+      ],
+      "id": "721d72bf-0663-4ccb-9166-caa1d47409c6",
+      "name": "Gmail - All Atendees",
+      "webhookId": "3a10d50b-69c8-446d-a487-69f153bcbe65",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                5
+              ],
+              "triggerAtHour": 16
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        464
+      ],
+      "id": "0de21c1e-e5a0-47e3-b8b8-1144f3fb2df2",
+      "name": "Schedule - Friday 4PM - Weekly Digest Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I",
+          "mode": "list",
+          "cachedResultName": "ClearDesk - Meeting Pipeline Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 144378051,
+          "mode": "list",
+          "cachedResultName": "Task Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LGtdv60r5L1q5uu7uylX3rqpNxUSJ9PqAeXse5xia2I/edit#gid=144378051"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        464
+      ],
+      "id": "25e6b559-7117-41df-8776-ecfe1dbf7fe8",
+      "name": "Sheets - Read All Open Tasks from Task Tracker",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nconst today = new Date();\nconst sevenDaysFromNow = new Date();\nsevenDaysFromNow.setDate(today.getDate() + 7);\n\nconst atRiskTasks = allItems\n  .map(item => item.json)\n  .filter(row => {\n    if ((row[\"Status\"] || \"\").toLowerCase() !== \"open\") return false;\n    const dueDateStr = row[\"Due Date\"] || \"\";\n    if (!dueDateStr) return false;\n    const dueDate = new Date(dueDateStr);\n    if (isNaN(dueDate.getTime())) return false;\n    // Include overdue AND upcoming within 7 days\n    return dueDate <= sevenDaysFromNow;\n  })\n  .sort((a, b) => Number(new Date(a[\"Due Date\"])) - Number(new Date(b[\"Due Date\"])));\n\nreturn [{\n  json: {\n    atRiskTasks,\n    taskCount: atRiskTasks.length,\n    hasAtRiskTasks: atRiskTasks.length > 0,\n    reportDate: today.toISOString().split('T')[0]\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        464
+      ],
+      "id": "88ea3cfc-4899-4936-8cb0-8a0a47763bdf",
+      "name": "Code - Filter Tasks Due Within 7 Days"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1b2d256d-fa57-4761-80b0-ef32b6caceea",
+              "leftValue": "={{ $json.hasAtRiskTasks }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        464
+      ],
+      "id": "288585af-4767-4ef2-80ee-a95ec97b812b",
+      "name": "IF - Any At-Risk Tasks Founds?"
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com",
+        "subject": "=📋ClearDesk Weekly Digest - {{ $json.taskCount }} Task(s). Due This Week {{ $json.reportDate }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 660px; margin: 0 auto;\">\n  <div style=\"background: #1a237e; padding: 20px; border-radius: 8px 8px 0 0;\">\n    <h2 style=\"color: #e8eaf6; margin: 0;\">📋 Weekly Task Digest</h2>\n    <p style=\"color: #9fa8da; margin: 4px 0 0 0;\">\n      ClearDesk Consulting · {{ $json.reportDate }} · {{ $json.taskCount }} task(s) due within 7 days\n    </p>\n  </div>\n  <div style=\"background: #f8f9fa; padding: 24px; border: 1px solid #dee2e6; border-radius: 0 0 8px 8px;\">\n\n    <p>The following open tasks are due within the next 7 days.\n    Please ensure assignees are aware and on track.</p>\n\n    <table style=\"width:100%; border-collapse:collapse; font-size:14px; margin-top:16px;\">\n      <tr style=\"background:#1a237e; color:white;\">\n        <td style=\"padding:10px 14px; font-weight:bold;\">Meeting</td>\n        <td style=\"padding:10px 14px; font-weight:bold;\">Task</td>\n        <td style=\"padding:10px 14px; font-weight:bold;\">Assignee</td>\n        <td style=\"padding:10px 14px; font-weight:bold;\">Due Date</td>\n        <td style=\"padding:10px 14px; font-weight:bold;\">Priority</td>\n      </tr>\n      {{ $json.atRiskTasks.map((task, i) => `\n      <tr style=\"background:${i % 2 === 0 ? '#ffffff' : '#f1f3f5'}\">\n        <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6; font-size:12px; color:#555;\">${task[\"Meeting Title\"] || \"\"}</td>\n        <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6;\">${task[\"Task Description\"] || \"\"}</td>\n        <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6; font-weight:bold;\">${task[\"Assignee\"] || \"Unassigned\"}</td>\n        <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6; color:#c62828; font-weight:bold;\">${task[\"Due Date\"] || \"\"}</td>\n        <td style=\"padding:10px 14px; border-bottom:1px solid #dee2e6;\">${task[\"Priority\"] || \"Medium\"}</td>\n      </tr>`).join('')\n      }}\n    </table>\n\n    <p style=\"color:#666; font-size:12px; margin-top:20px; border-top:1px solid #dee2e6; padding-top:12px;\">\n      Automated weekly digest from ClearDesk AI Meeting Pipeline.\n      Tasks marked Open in the Task Tracker sheet with due dates within 7 days.\n    </p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        832,
+        368
+      ],
+      "id": "a7245950-6890-4be0-bcf5-74121232ad56",
+      "name": "Gmail - Ops Manager - Weekly Digest",
+      "webhookId": "643aab93-dea0-41b4-a357-9531868e9949",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        816,
+        608
+      ],
+      "id": "3bef1023-c9b5-4a13-9411-99c2085da6ed",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        496
+      ],
+      "id": "b507f56b-61da-4706-803b-515e2233c6e5",
+      "name": "Global Error Trigger"
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com",
+        "subject": "=🔴ClearDesk Pipeline Error - {{ $json.workflow.name }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif; max-width:600px;\">\n  <div style=\"background:#7f0000; padding:16px; border-radius:8px 8px 0 0;\">\n    <h2 style=\"color:white; margin:0;\">🔴 Workflow Error Detected</h2>\n  </div>\n  <div style=\"background:#f8f9fa; padding:20px; border:1px solid #dee2e6; border-radius:0 0 8px 8px;\">\n    <table style=\"width:100%; border-collapse:collapse;\">\n      <tr><td style=\"padding:8px; border-bottom:1px solid #ddd; font-weight:bold; background:#f1f3f5; width:35%;\">Workflow</td>\n          <td style=\"padding:8px; border-bottom:1px solid #ddd;\">{{ $json.workflow.name ?? \"Unknown\" }}</td></tr>\n      <tr><td style=\"padding:8px; border-bottom:1px solid #ddd; font-weight:bold; background:#f1f3f5;\">Error</td>\n          <td style=\"padding:8px; border-bottom:1px solid #ddd; color:#c0392b;\">{{ $json.execution.error.message ?? \"Unknown\" }}</td></tr>\n      <tr><td style=\"padding:8px; border-bottom:1px solid #ddd; font-weight:bold; background:#f1f3f5;\">Execution ID</td>\n          <td style=\"padding:8px; border-bottom:1px solid #ddd;\">{{ $json.execution.id ?? \"Unknown\" }}</td></tr>\n      <tr><td style=\"padding:8px; font-weight:bold; background:#f1f3f5;\">View Execution</td>\n          <td style=\"padding:8px;\"><a href=\"{{ $json.execution.url }}\">Open in n8n →</a></td></tr>\n    </table>\n  </div>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1648,
+        496
+      ],
+      "id": "5ff54b86-88dc-49f2-b90a-3d0d8e1803e8",
+      "name": "Gmail - Error Alert Message to Admin",
+      "webhookId": "250404cb-539c-4e48-a9f6-ae439ed0efd1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Sheet - Triggers\nfires every time a submission form is added to the sheet",
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -176,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "4a41830f-27df-4f3b-bc6e-a7319ba036a4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Data Cleaning\nIntake and field cleaning\nrename all fields to camelCase",
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        112,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "7daf84df-adce-49c7-b6bc-3650743f6d61",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## AI Brain\nsends the full transcript to openAI chat model, prompt request only a json object - no markdown",
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        448,
+        224
+      ],
+      "typeVersion": 1,
+      "id": "1e43dbd6-d066-481a-95c4-21a1136cfd42",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## CODE & JSON PARSING\nhandles defensive parsing",
+        "height": 128,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        704,
+        -144
+      ],
+      "typeVersion": 1,
+      "id": "4f7d12c2-c7f6-426a-b9d1-2165331fb2e7",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Route by Correct AI Response\nif the AI parsing is correct or not?",
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        912,
+        144
+      ],
+      "typeVersion": 1,
+      "id": "d4b974ba-2099-4eef-9949-56cbeac205e9",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## CODE & Action Item Splitting\nsplits actionItems array into individual n8n items - one per task",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1024,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "90abe111-8b5e-407c-a4b5-1716469c37bc",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Failed AI Response\nsend an email to the admin",
+        "height": 96,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1184,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "47830823-55e8-4725-a598-435999b6edb0",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## Routing by Unassigned\nif there is an unassigned actionItem",
+        "height": 144,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1328,
+        80
+      ],
+      "typeVersion": 1,
+      "id": "0c75f07b-5ddc-449a-8044-9151ca4156a5",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Route Path\n1. true -> set - flagAsOrphaned to true\n2. false -> append assigned task to tracker sheet\n",
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1536,
+        -368
+      ],
+      "typeVersion": 1,
+      "id": "2c83d376-bf0e-46ac-ba37-3b5ab0d76421",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## Merge\nmerge all processed action items together",
+        "height": 128,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1792,
+        64
+      ],
+      "typeVersion": 1,
+      "id": "395d2c79-29d6-4e9b-8b48-8d17308dcc17",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "## Sheet - Append\nappend the action Items to Meeting Archive",
+        "height": 96,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1920,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "0c8d96cf-5071-43ee-922e-2c157da06292",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "## CODE\nCounts an Unassigned ",
+        "height": 80,
+        "width": 176,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2176,
+        64
+      ],
+      "typeVersion": 1,
+      "id": "6ff731f8-df85-49d1-981b-d7abe76961a9",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "content": "## Route by Unassigned Tasks\n1. true -> send an email to the organizer about the unassigned task\n2. false -> send an email to all attendees",
+        "height": 176,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2336,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "277a4785-dc9a-4538-8365-1c6bf233b539",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "content": "## Schedule - 4AM Trigger\nfires every week on Friday at 4Am",
+        "height": 144,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -176,
+        304
+      ],
+      "typeVersion": 1,
+      "id": "1c837036-9b21-4d7b-b629-77fb256954f9",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "content": "## Sheet\nread all open status tasks from the Task Tracker sheet",
+        "height": 112,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        112,
+        352
+      ],
+      "typeVersion": 1,
+      "id": "795c4255-d0be-4f93-8b65-dc8ca144c141",
+      "name": "Sticky Note14"
+    },
+    {
+      "parameters": {
+        "content": "## CODE\nfilter tasks due within 7 days\nCalculate any risk tasks",
+        "height": 96,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        256,
+        624
+      ],
+      "typeVersion": 1,
+      "id": "15405ba9-ef72-4cb4-b271-4b6a0b5efaf7",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "content": "## Route by Risk\n1. if there is risk -> send an email the ops manager\n2. if not do nothing",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        528,
+        608
+      ],
+      "typeVersion": 1,
+      "id": "7a2ca526-8d69-456d-81e7-ed479a60f408",
+      "name": "Sticky Note16"
+    },
+    {
+      "parameters": {
+        "content": "## Global Error Handler\ncatches any crashes on the workflow\nthen send an email to the admin about the error",
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1184,
+        464
+      ],
+      "typeVersion": 1,
+      "id": "9b2d4f87-3244-4b98-9730-566af7131436",
+      "name": "Sticky Note17"
+    }
+  ],
+  "pinData": {
+    "AI Agent - Extract Structured Meeting Data": [
+      {
+        "json": {
+          "output": "{\n  \"summary\": \"We agreed to file the I-129 petition by next Tuesday. The client committed to providing the necessary documents. Mark will review the draft by Friday.\",\n  \"decisions\": [\n    \"File the I-129 petition by next Tuesday (2024-10-08).\",\n    \"Client will provide the required documents.\",\n    \"Mark will review the draft by Friday (2024-10-04).\"\n  ],\n  \"actionItems\": [\n    {\n      \"description\": \"File the I-129 petition.\",\n      \"assignee\": null,\n      \"dueDate\": \"2024-10-08\",\n      \"priority\": \"High\"\n    },\n    {\n      \"description\": \"Gather and provide the required documents for the I-129 filing.\",\n      \"assignee\": null,\n      \"dueDate\": null,\n      \"priority\": \"Medium\"\n    },\n    {\n      \"description\": \"Review the draft of the I-129 filing.\",\n      \"assignee\": \"Mark\",\n      \"dueDate\": \"2024-10-04\",\n      \"priority\": \"High\"\n    }\n  ],\n  \"attendeeNames\": [\n    \"Mark\"\n  ]\n}"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Sheets - New Submission Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set - Clean and Prepare Form Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Clean and Prepare Form Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Extract Structured Meeting Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Extract Structured Meeting Data",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Extract Structured Meeting Data": {
+      "main": [
+        [
+          {
+            "node": "Code - parse and Validate AI JSON Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - parse and Validate AI JSON Response": {
+      "main": [
+        [
+          {
+            "node": "IF - Did AI Return Valid JSON?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Did AI Return Valid JSON?": {
+      "main": [
+        [
+          {
+            "node": "Code - Split Action Items into Individual Records",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Admin AI Parse Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Split Action Items into Individual Records": {
+      "main": [
+        [
+          {
+            "node": "IS This Action Item Unassigned?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IS This Action Item Unassigned?": {
+      "main": [
+        [
+          {
+            "node": "Set - Flag Unassigned Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets - Append Assigned Task to Task Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Flag Unassigned Task": {
+      "main": [
+        [
+          {
+            "node": "Merge - All Processed Action Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Append Assigned Task to Task Tracker": {
+      "main": [
+        [
+          {
+            "node": "Merge - All Processed Action Items",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge - All Processed Action Items": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Append Meeting to Archive Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Append Meeting to Archive Sheet": {
+      "main": [
+        [
+          {
+            "node": "Code - Count Unassigned Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Count Unassigned Tasks": {
+      "main": [
+        [
+          {
+            "node": "if - were There Unassigned Tasks?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if - were There Unassigned Tasks?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Organizer - Unassigned Task Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - All Atendees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule - Friday 4PM - Weekly Digest Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Read All Open Tasks from Task Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Read All Open Tasks from Task Tracker": {
+      "main": [
+        [
+          {
+            "node": "Code - Filter Tasks Due Within 7 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Filter Tasks Due Within 7 Days": {
+      "main": [
+        [
+          {
+            "node": "IF - Any At-Risk Tasks Founds?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Any At-Risk Tasks Founds?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Ops Manager - Weekly Digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Error Alert Message to Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Organizer - Unassigned Task Alert": {
+      "main": [
+        [
+          {
+            "node": "Gmail - All Atendees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "i8iQnKOufj7UBSNE",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "a5251fab-c126-44bd-8744-579a7ecd90b2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bb6f1595f07e6272edd57f6434afd9c87f3aa0ecf17c4f671ba5f2c613d40faa"
+  },
+  "id": "i8iQnKOufj7UBSNE",
+  "tags": []
+}

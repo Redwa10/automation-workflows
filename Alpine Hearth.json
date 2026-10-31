@@ -1,0 +1,828 @@
+{
+  "name": "Alpine Hearth",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M",
+          "mode": "list",
+          "cachedResultName": "Alpine Hearth Equipment Request",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2065825167,
+          "mode": "list",
+          "cachedResultName": "Form responses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M/edit#gid=2065825167"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6c5adc43-78c8-49ba-b43b-eac3233a4f70",
+      "name": "Google Sheets Trigger - New Form Submission",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "Sf4cmdxNooFdy3wU",
+          "name": "Google Sheets Trigger OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "12256e94-25c9-401d-9801-72c90a231845",
+              "name": "Chef_Name",
+              "value": "={{ $json['Chef Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "bc2315e0-5158-4f37-9fa3-df820ee58b83",
+              "name": "Event_Date",
+              "value": "={{ $json['Event Date'] }}",
+              "type": "string"
+            },
+            {
+              "id": "c9832c49-c488-43a6-897e-e9c2e6784dc3",
+              "name": "Equipment_Requested",
+              "value": "={{ $json['Equipment Requested'] }}",
+              "type": "string"
+            },
+            {
+              "id": "b54f4f5d-c215-44c5-8190-81ce48fb7896",
+              "name": "Rental_Cost",
+              "value": "={{ Number($json['Estimated Rental Cost']) }}",
+              "type": "number"
+            },
+            {
+              "id": "ea8efeb6-0107-4a1a-88f3-3c09a4d669c0",
+              "name": "Rental_Cost_Formatted",
+              "value": "=${{ Number($json['Estimated Rental Cost']).toFixed(2) }}",
+              "type": "string"
+            },
+            {
+              "id": "f4a2f87c-4345-4a6c-a00c-d1441c1f1674",
+              "name": "request_id",
+              "value": "=AH-{{ $now.toFormat('yyyy-MM-dd') }}-{{ Math.floor(Math.random() * 9000 + 1000) }}",
+              "type": "string"
+            },
+            {
+              "id": "601e3b1c-e6db-4490-bb17-0e2eb7cc482e",
+              "name": "submitted_at",
+              "value": "={{ $now.toFormat('yyyy-MM-dd HH:MM:ss') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "4d794b8c-3bd7-4db6-80fc-7be8a13e2217",
+      "name": "Set - Clean Data & Generate Request ID"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0e872da2-7ed4-4e40-8e25-2f2ff1b62553",
+              "leftValue": "={{ $json.Rental_Cost }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3c97f0cc-fd7d-4d63-aafa-73cb2db53401",
+      "name": "If - Rental Cost Under $200?"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M",
+          "mode": "list",
+          "cachedResultName": "Alpine Hearth Equipment Request",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 217217148,
+          "mode": "list",
+          "cachedResultName": "Equipment Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M/edit#gid=217217148"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Request ID": "={{ $json.request_id }}",
+            "Chef Name": "={{ $json.Chef_Name }}",
+            "Event Date": "={{ $json.Event_Date }}",
+            "Equipment": "={{ $json['Equipment_Requested '] }}",
+            "Cost": "={{ $json.Rental_Cost_Formatted }}",
+            "Status": "Approved",
+            "Decision Date": "={{ $json.submitted_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Request ID",
+              "displayName": "Request ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Chef Name",
+              "displayName": "Chef Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Event Date",
+              "displayName": "Event Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Equipment",
+              "displayName": "Equipment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cost",
+              "displayName": "Cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Decision Date",
+              "displayName": "Decision Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "f5974e57-4fca-4da8-bc1a-527dd9a8e17f",
+      "name": "Log - Auto-Approved to Equipment Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FdznwUMSqF53sJkd",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com ",
+        "subject": "=✅ Equipment Approved -  {{ $('Set - Clean Data & Generate Request ID').item.json['Equipment_Requested '] }} | {{ $('Set - Clean Data & Generate Request ID').item.json.request_id }}",
+        "emailType": "text",
+        "message": "=Hi Warehouse team,\n\nThe following equipment request has been AUTO-APPROVED(cost under $200).\nPlease arrange the rental for the event date.\n\nRequest ID: {{ $json['Request ID'] }}\nChef Name: {{ $json['Chef Name'] }}\nEvent Date: {{ $json['Event Date'] }}\nEquipment: {{ $json.Equipment }}\nCost: {{ $json.Cost }}\nStatus: Auto-Approved\n\n\nAlpine Hearth Automated System",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "fdae1ff1-3222-4c78-8874-b7434b879888",
+      "name": "Email - Notify Warehouse",
+      "webhookId": "d19298e0-3362-46e1-aa1f-2f7fa55d27ba",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "g0DhM0N2U1lXH0iz",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com ",
+        "subject": "=⚠ Approval Required -  {{ $('Set - Clean Data & Generate Request ID').item.json['Equipment_Requested'] }} | {{ $('Set - Clean Data & Generate Request ID').item.json.request_id }}",
+        "message": "=<h2>⚠️ Equipment Request Requires Your Approval</h2>\n<p>Hi Manager, a new request needs your decision:</p>\n\n<table border=\"1\" cellpadding=\"8\">\n  <tr><td><strong>Request ID</strong></td><td>{{ $json.request_id }}</td></tr>\n  <tr><td><strong>Chef Name</strong></td><td>{{ $json.Chef_Name }}</td></tr>\n  <tr><td><strong>Event Date</strong></td><td>{{ $json.Event_Date }}</td></tr>\n  <tr><td><strong>Equipment</strong></td><td>{{ $json['Equipment_Requested'] }}</td></tr>\n  <tr><td><strong>Estimated Cost</strong></td><td>{{ $json.Rental_Cost_Formatted }}</td></tr>\n</table>\n\n<br/>\n\n<a href=\"{{ $execution.resumeUrl }}&action=approve&requestId={{ $json.request_id }}&chef={{ $json.Chef_Name }}&equipment={{ $json['Equipment_Requested'] }}&date={{ $json.Event_Date }}&cost={{ $json.Rental_Cost_Formatted }}\"\nstyle=\"background:green;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;margin-right:20px;\">✅ APPROVE\n</a>\n\n\n<a href=\"{{ $execution.resumeUrl }}&action=reject&requestId={{ $json.request_id }}&chef={{ $json.Chef_Name }}&equipment={{ $json['Equipment_Requested'] }}&date={{ $json.Event_Date }}&cost={{ $json.Rental_Cost_Formatted }}\" \nstyle=\"background:red;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;\">\n❌ REJECT\n</a>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        96
+      ],
+      "id": "0499bbc9-fd67-499a-abb0-e90b805a997f",
+      "name": "Email - Send Approval Request to Manager",
+      "webhookId": "7db6f365-c969-4636-8b9e-e3b8e8254093",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "g0DhM0N2U1lXH0iz",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        96
+      ],
+      "id": "05e4ba6e-3096-40e3-bab3-d02e1e2633df",
+      "name": "Wait - Pending Manager Descision",
+      "webhookId": "dbd4ad7c-2ff6-45a1-b3f4-bcecce9b99ac"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ca5a50d5-3e40-4514-80d2-177efa5248be",
+              "leftValue": "={{ $json.query.action }}",
+              "rightValue": "approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        96
+      ],
+      "id": "b2d7549f-ae0d-425b-b6cc-1f85904f4363",
+      "name": "If - Manager Approved or Rejected?"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M",
+          "mode": "list",
+          "cachedResultName": "Alpine Hearth Equipment Request",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 217217148,
+          "mode": "list",
+          "cachedResultName": "Equipment Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M/edit#gid=217217148"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Request ID": "={{ $json.query.requestId }}",
+            "Chef Name": "={{ $json.query.chef }}",
+            "Event Date": "={{ $json.query.date }}",
+            "Equipment": "={{ $json.query.equipment }}",
+            "Cost": "={{ $json.query.cost }}",
+            "Status": "Approved",
+            "Decision Date": "={{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Request ID",
+              "displayName": "Request ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Chef Name",
+              "displayName": "Chef Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Event Date",
+              "displayName": "Event Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Equipment",
+              "displayName": "Equipment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cost",
+              "displayName": "Cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Decision Date",
+              "displayName": "Decision Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1376,
+        -16
+      ],
+      "id": "27792ea2-3278-482a-83f0-2d3bc9cf5770",
+      "name": "Log - Manager Approved to Equipment Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FdznwUMSqF53sJkd",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com ",
+        "subject": "=✅ Manager Approved -  {{ $json.Equipment }}",
+        "emailType": "text",
+        "message": "=Hello Warehouse Team,\n\nThe Operation Manager has APPROVED the following equipment request.\n\nPlease arrange the rental immediately.\n\nRequest ID: {{ $json['Request ID'] }}\nChef Name: {{ $json['Chef Name'] }}\nEvent Date: {{ $json['Event Date'] }}\nEquipment: {{ $json.Equipment }}\nCost: {{ $json.Cost }}\nStatus: {{ $json.Status }}\n\n\nAlpine Hearth Automated System",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1536,
+        -16
+      ],
+      "id": "b4f47b4c-8ab4-4f50-b819-592342cba817",
+      "name": "Email - Notify Warehouse (Manager Approved)",
+      "webhookId": "7f62b0bf-87e2-4c31-a005-e45ecb046504",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "g0DhM0N2U1lXH0iz",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com ",
+        "subject": "=❌ Equipment Request Declined -  {{ $json.query.equipment }}",
+        "message": "=Hi {{ $('Wait - Pending Manager Descision').item.json.query.chef }},\n\nUnfortunately your equipment rental request has been declined by the Operational Manager.\n\nRequest ID: {{ $('Wait - Pending Manager Descision').item.json.query.requestId }}\n\nEquipment: {{ $('Wait - Pending Manager Descision').item.json.query.equipment }}\n\nEvent Date: {{ $('Wait - Pending Manager Descision').item.json.query.date }}\n\nCost: {{ $('Wait - Pending Manager Descision').item.json.query.cost }}\n\nStatus: Declined\n\nPlease speak with the Operational Manager if you need to discuss alternatives or resubmit wiht different equipment or approach.\n\nAlpine Hearth Automated System",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        192
+      ],
+      "id": "14da70ba-5f07-4ca8-adf4-ca8093487cde",
+      "name": "Email - Notify Chef of Rejection",
+      "webhookId": "071bf343-592a-4f95-b0c5-64731e213c41",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "g0DhM0N2U1lXH0iz",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M",
+          "mode": "list",
+          "cachedResultName": "Alpine Hearth Equipment Request",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 217217148,
+          "mode": "list",
+          "cachedResultName": "Equipment Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qZRsfyRblHvjPSJvIoFZ2XMOI10srMX-CeJgmG2i5_M/edit#gid=217217148"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Request ID": "=ERROR-{{ $now.toFormat('yyyymmddHHmmss') }}",
+            "Status": "ERROR",
+            "Decision Date": "={{ $json.execution.error.message }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Request ID",
+              "displayName": "Request ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Chef Name",
+              "displayName": "Chef Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Event Date",
+              "displayName": "Event Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Equipment",
+              "displayName": "Equipment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cost",
+              "displayName": "Cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Decision Date",
+              "displayName": "Decision Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        224
+      ],
+      "id": "be45eb60-a6a1-43a8-b87c-dc6b7fc14194",
+      "name": "Log Error to Equipment Log Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FdznwUMSqF53sJkd",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        112,
+        224
+      ],
+      "id": "b352eee2-6835-487a-9eef-87edfe636da4",
+      "name": "Global Error Handling"
+    },
+    {
+      "parameters": {
+        "content": "## Trigger\nuse google form as data submission.\nthen store it to google sheet and then read the data from it"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -64,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "2bd59a57-74c8-456d-9faf-0a9afeabb012",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## IF\nif cost is less than $200 then approve the request automatically.\nbut if it's not less than $200 then send an email to the manager to get approved",
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        272,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "0ffa4569-3798-410c-b0db-10e4e0c2a114",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## WAIT\nuse wait node to wait for the manager approve or reject the request then resume the execution."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        768,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "9298fa9c-b97d-4777-9be6-6a8da813810f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Approve or Rejected\nif approved then log it to google sheet and then send an email notifying the approval.\nif rejected also send an email notifying the rejection",
+        "height": 192
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1040,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "3254b9a2-f8a8-4888-90ae-c60c90828f4b",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Global Error Handler\nlog any crashes of the workflow to a google sheet"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -176,
+        208
+      ],
+      "typeVersion": 1,
+      "id": "82c712c6-9606-412b-91e8-c5ab4e65c28d",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger - New Form Submission": {
+      "main": [
+        [
+          {
+            "node": "Set - Clean Data & Generate Request ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Clean Data & Generate Request ID": {
+      "main": [
+        [
+          {
+            "node": "If - Rental Cost Under $200?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Rental Cost Under $200?": {
+      "main": [
+        [
+          {
+            "node": "Log - Auto-Approved to Equipment Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email - Send Approval Request to Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log - Auto-Approved to Equipment Log": {
+      "main": [
+        [
+          {
+            "node": "Email - Notify Warehouse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email - Send Approval Request to Manager": {
+      "main": [
+        [
+          {
+            "node": "Wait - Pending Manager Descision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait - Pending Manager Descision": {
+      "main": [
+        [
+          {
+            "node": "If - Manager Approved or Rejected?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Manager Approved or Rejected?": {
+      "main": [
+        [
+          {
+            "node": "Log - Manager Approved to Equipment Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email - Notify Chef of Rejection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log - Manager Approved to Equipment Log": {
+      "main": [
+        [
+          {
+            "node": "Email - Notify Warehouse (Manager Approved)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Error Handling": {
+      "main": [
+        [
+          {
+            "node": "Log Error to Equipment Log Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "UC7szxt3odKrsswM",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "d577d4bf-8be5-47fd-81e1-0e140ffc9b2b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eaf6d5418c11e79f1efa1b281ee8dfe8188518c3314460872c96288623f12fdc"
+  },
+  "id": "gRk6qZ3WwYQuv7WC",
+  "tags": []
+}

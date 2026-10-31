@@ -1,0 +1,624 @@
+{
+  "name": "Aura Flow Pilates",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1Wqh2yminlUXvFEhgRKBtS64wLqTXPK9IGg9RH8_V_7U",
+          "mode": "list",
+          "cachedResultName": "Aura Flow Pilates - Referral System",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wqh2yminlUXvFEhgRKBtS64wLqTXPK9IGg9RH8_V_7U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Trial Upgrades",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wqh2yminlUXvFEhgRKBtS64wLqTXPK9IGg9RH8_V_7U/edit#gid=0"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5efdf2bf-d82c-45b4-9fc3-e61003285561",
+      "name": "Google Sheets Trigger - New Trial Upgrade",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "mWZq9wOgUxxOO7Yb",
+          "name": "Google Sheets Trigger OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "32d8d2e7-6d0e-481c-9c87-32cbbf9cd22a",
+              "name": "new_member_name",
+              "value": "={{ $json['New Member Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "f6223e24-abd7-4935-b582-a54d67c77e8d",
+              "name": "new_member_email",
+              "value": "={{ $json['New Member Email'] }}",
+              "type": "string"
+            },
+            {
+              "id": "390a45b5-4686-426b-be13-2b7e210b08c0",
+              "name": "upgrade_date",
+              "value": "={{ $json['Upgrade Date'] }}",
+              "type": "string"
+            },
+            {
+              "id": "a32e65a5-415f-4979-964f-e6b525e48a15",
+              "name": "referrer_name",
+              "value": "={{ $json['Referrer Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "cb3b6f7f-adfb-4f21-8943-a76328c22c46",
+              "name": "membership_type",
+              "value": "={{ $json['Membership Type'] }}",
+              "type": "string"
+            },
+            {
+              "id": "da444103-a2e3-4028-b8fc-b8897822d7d5",
+              "name": "processed_at",
+              "value": "={{ $now.toFormat('yyyy-MM-dd HH:ss') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "1be52821-604d-4966-b9c7-6dfd06e53ea5",
+      "name": "SET - Normalize Upgrade Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "aaeef64d-6500-41d2-ae56-da526854f913",
+              "leftValue": "={{ $json.referrer_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "e9ac04b4-651a-42fb-a3d4-c45defd5b8a3",
+      "name": "IF - Is Referrer Name Populated?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        624,
+        96
+      ],
+      "id": "022d59ce-18c9-4b8b-9749-a87f783a4ba5",
+      "name": "No-Op  - No Referrer Listed, Stop Cleanly"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Wqh2yminlUXvFEhgRKBtS64wLqTXPK9IGg9RH8_V_7U",
+          "mode": "list",
+          "cachedResultName": "Aura Flow Pilates - Referral System",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wqh2yminlUXvFEhgRKBtS64wLqTXPK9IGg9RH8_V_7U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1949908940,
+          "mode": "list",
+          "cachedResultName": "Active Members",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wqh2yminlUXvFEhgRKBtS64wLqTXPK9IGg9RH8_V_7U/edit#gid=1949908940"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Member Name",
+              "lookupValue": "={{ $json.referrer_name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "08353d80-b8ac-4048-82d6-07b950b84cb7",
+      "name": "Lookup - Find referrer in Active Members",
+      "retryOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7b48380d-ed17-49ec-a89f-01bc9bb09980",
+              "leftValue": "={{ $json['Member Name'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "8d9d0d31-f1b8-4962-8e74-54c4fc4821ca",
+      "name": "IF - Referrer Found in Active Members?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Wqh2yminlUXvFEhgRKBtS64wLqTXPK9IGg9RH8_V_7U",
+          "mode": "list",
+          "cachedResultName": "Aura Flow Pilates - Referral System",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wqh2yminlUXvFEhgRKBtS64wLqTXPK9IGg9RH8_V_7U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1949908940,
+          "mode": "list",
+          "cachedResultName": "Active Members",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wqh2yminlUXvFEhgRKBtS64wLqTXPK9IGg9RH8_V_7U/edit#gid=1949908940"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Member Name": "={{ $json['Member Name'] }}",
+            "Reward Credits": "={{ Number($json['Reward Credits']) }}"
+          },
+          "matchingColumns": [
+            "Member Name"
+          ],
+          "schema": [
+            {
+              "id": "Member Name",
+              "displayName": "Member Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Join Date",
+              "displayName": "Join Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Membership Type",
+              "displayName": "Membership Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Reward Credits",
+              "displayName": "Reward Credits",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1040,
+        -192
+      ],
+      "id": "8f7789a3-de16-4252-bf0a-52f8668e5d8e",
+      "name": "Sheets - Increment Referrer Reward Credits",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Lookup - Find referrer in Active Members').item.json.Email }}",
+        "subject": "=🎉You earned a Referral Credit - Thank you {{ $('Lookup - Find referrer in Active Members').item.json['Member Name'] }}",
+        "message": "=<h2>🎉 Thank You for Your Referral!</h2>\n<p>Hi <strong>{{ $('Lookup - Find referrer in Active Members').item.json['Member Name'] }}</strong>,</p>\n\n<p>Amazing news — your referral just paid off! \n<strong>{{ $('SET - Normalize Upgrade Data').item.json.new_member_name }}</strong> \nhas just upgraded to a full \n<strong>{{ $('SET - Normalize Upgrade Data').item.json.membership_type }}</strong> \nat Aura Flow Pilates, and your account has been credited.</p>\n\n<table border=\"1\" cellpadding=\"10\" \n  style=\"border-collapse:collapse;width:100%;font-family:Arial,sans-serif;\">\n  <tr style=\"background:#f5eef8;\">\n    <td><strong>New Member</strong></td>\n    <td>{{ $('SET - Normalize Upgrade Data').item.json.new_member_name }}</td>\n  </tr>\n  <tr>\n    <td><strong>Upgrade Date</strong></td>\n    <td>{{ $('SET - Normalize Upgrade Data').item.json.upgrade_date }}</td>\n  </tr>\n  <tr style=\"background:#f5eef8;\">\n    <td><strong>Your New Credit Balance</strong></td>\n    <td><strong style=\"color:#7d3c98;\">\n      {{ $json['Reward Credits'] }} Credits\n    </strong></td>\n  </tr>\n</table>\n\n<br/>\n<p>Referral credits can be redeemed for free classes, merchandise, \nor a discount on your next renewal. \nVisit the studio or reply to this email to redeem.</p>\n\n<p>Keep spreading the Aura Flow love — every referral you send earns \nyou another credit! 🧘</p>\n\n<p>With gratitude,<br/>\n<strong>The Aura Flow Pilates Team</strong></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        -192
+      ],
+      "id": "1690e1db-9328-41de-966f-386998ad9b28",
+      "name": "Gmail - Send Thank You Email to Referrer",
+      "webhookId": "ac5f4129-0967-4efa-ab61-d7a2cab85f5a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0B09B18M6D",
+          "mode": "list",
+          "cachedResultName": "referral-alert"
+        },
+        "text": "=⚠*UNMATCHED REFERRAL - MANUAL REVIEW REQUIRED*\n\nA new member listed a referrer who could not be found in the Active Member Sheet.\n\n👤*New Member:* {{ $('SET - Normalize Upgrade Data').item.json.new_member_name }}\n\n📧*New Member Email:* {{ $('SET - Normalize Upgrade Data').item.json.new_member_email }}\n\n📆*Upgrade Date:* {{ $('SET - Normalize Upgrade Data').item.json.upgrade_date }}\n\n🔎*Referrer Name:* {{ $('SET - Normalize Upgrade Data').item.json.referrer_name }}\n\n*Possible Reason*\n-Referrer name was misspelled on the form.\n-Referrer is not yet an active member\n-Referrer used a different name than registered.\n\n*Action Required:* Check the Active Member Sheet and manually apply the credit if valid.\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "7a1d032d-af02-423d-8746-c923da3a7dfd",
+      "name": "Slack - Unmatched Referrer, Notify Founder",
+      "webhookId": "b6718ec5-897c-436e-b9b1-f46a8a8350c5",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "vLo3L458ffAoNoHm",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        208
+      ],
+      "id": "aba1eadb-6946-4d70-8e29-0ba71d026442",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0B09B18M6D",
+          "mode": "list",
+          "cachedResultName": "referral-alert"
+        },
+        "text": "=🔴*WORKFLOW ERROR - AURA FLOW REFERRAL SYSTEM*\n\nA node has failed and the referral may not have been processed.\n\n*Node:* {{ $json.execution.lastNodeExecuted }}\n\n*Error:* {{ $json.execution.error.message }}\n\n*Execution ID:* {{ $json.execution.id }}\n\n*Time:* {{ $now.toISO() }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        160,
+        208
+      ],
+      "id": "4c0877e6-1718-4ce4-ab9e-d56bf3d1cdae",
+      "name": "Slack - Alert Admin  of Workflow Error",
+      "webhookId": "375c0189-bc03-4ff4-b243-8e677e675768",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "vLo3L458ffAoNoHm",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## TRIGGER\nfires when CRM adds new upgrade row.",
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -160,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "b6a21c5c-ada3-4032-8649-9979f6a1b516",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## DATA CLEANING\nNormalizes all incoming data from the google sheet\n",
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        96,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "fe4a19f7-34e0-4b31-9f3e-7ec33c5ac461",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## IF\nif referrer name is present -> look them up.\nif no referrer -> stop cleanly(No-Op)",
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        352,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "7782865c-e86d-4c62-aa81-332afb78b540",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## LOOKUP\nif referrer found in Active Members -> increment their reward credits by 1\nthen send thank you email\n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        624,
+        -272
+      ],
+      "typeVersion": 1,
+      "id": "ca67c199-4732-4e58-a246-5ea5e575bad0",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## SLACK\nslack alert to founder for manual review, if the referrer couldn't be found.",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1216,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "7a31fcdb-2860-418d-a0fd-e801efc4ac1f",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Global Error Handler\nCatches any crash that caused any node to fail.",
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -304,
+        176
+      ],
+      "typeVersion": 1,
+      "id": "9f2857ef-561d-4a7c-b06c-a081eb12cb50",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Slack Error\nSend an alert to the admin, so it can be fixed right away",
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        272,
+        176
+      ],
+      "typeVersion": 1,
+      "id": "480be8a6-d876-4e77-8564-b0681c7f8722",
+      "name": "Sticky Note6"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger - New Trial Upgrade": {
+      "main": [
+        [
+          {
+            "node": "SET - Normalize Upgrade Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SET - Normalize Upgrade Data": {
+      "main": [
+        [
+          {
+            "node": "IF - Is Referrer Name Populated?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Is Referrer Name Populated?": {
+      "main": [
+        [
+          {
+            "node": "Lookup - Find referrer in Active Members",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No-Op  - No Referrer Listed, Stop Cleanly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup - Find referrer in Active Members": {
+      "main": [
+        [
+          {
+            "node": "IF - Referrer Found in Active Members?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Referrer Found in Active Members?": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Increment Referrer Reward Credits",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Unmatched Referrer, Notify Founder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Increment Referrer Reward Credits": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Thank You Email to Referrer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Slack - Alert Admin  of Workflow Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "810c144b-6dc0-4c1f-ade4-d9955cb374fe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bb6f1595f07e6272edd57f6434afd9c87f3aa0ecf17c4f671ba5f2c613d40faa"
+  },
+  "id": "4VglJtbu4qECA92j",
+  "tags": []
+}
