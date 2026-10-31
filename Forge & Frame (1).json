@@ -1,0 +1,1054 @@
+{
+  "name": "Forge & Frame",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c6b3e412-f579-4132-b036-b210f14f655b",
+              "name": "deal_id",
+              "value": "={{ $json.Deal_ID ?? \"Unknnown\"}}",
+              "type": "string"
+            },
+            {
+              "id": "9b5569ea-8227-4e61-bd71-e1507cdb3909",
+              "name": "channel",
+              "value": "={{ $json.Channel }}",
+              "type": "string"
+            },
+            {
+              "id": "5db97cd4-205d-41ea-abdf-62c8d7c54dea",
+              "name": "rep_name",
+              "value": "={{ $json.Rep_Name ? $json.Rep_Name.split('').map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(\"\") : \"Unknown Rep\"}}",
+              "type": "string"
+            },
+            {
+              "id": "c9465a10-cbfa-452b-aceb-10060589cd7d",
+              "name": "deal_value",
+              "value": "={{ $json.Deal_Value ? Number($json.Deal_Value) : 0}}",
+              "type": "number"
+            },
+            {
+              "id": "fa513634-f644-44bf-ba11-fc662125f473",
+              "name": "current_stage",
+              "value": "={{ $json.Current_Stage ?? \"Unknown\"}}",
+              "type": "string"
+            },
+            {
+              "id": "d3d47144-4fce-4236-8a51-1a477afe7705",
+              "name": "last_contact_date",
+              "value": "={{ $json.Last_Contact_Date ?? \"\"}}",
+              "type": "string"
+            },
+            {
+              "id": "ba164a54-d3bc-4207-9865-a3d12f6cfd04",
+              "name": "days_in_stage",
+              "value": "={{ $json.Days_In_Stage ? Number($json.Days_In_Stage) : 0}}",
+              "type": "number"
+            },
+            {
+              "id": "dfb8cbb7-a9b2-4967-9fb9-76ef9c339e57",
+              "name": "normalized_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d188b20c-e8db-4d29-92fb-b0a2a73765b1",
+      "name": "Set - Normalize Pipeline Deal Data"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0",
+          "mode": "list",
+          "cachedResultName": "Forge and Frame - Sales Pipeline Hub",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1443989525,
+          "mode": "list",
+          "cachedResultName": "Pipeline",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0/edit#gid=1443989525"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5808d9ad-351f-4a09-adfc-99b511d4acb2",
+      "name": "Sheets - Pipeline Watch for New Deals",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "mWZq9wOgUxxOO7Yb",
+          "name": "Google Sheets Trigger OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const deal = item.json;\n\n  let score = 100;\n\n  // Calculate days since last contact\n  const lastContact = deal.last_contact_date ? new Date(deal.last_contact_date) : null;\n  const today = new Date();\n  let daysSinceContact = 0;\n\n  if (lastContact) {\n    daysSinceContact = Math.floor((Number(today) - Number(lastContact)) / (1000 * 60 * 60 * 24));\n  }\n\n  // Deduct based on days since last contact\n  if (daysSinceContact >= 22) {\n    score -= 50;\n  } else if (daysSinceContact >= 15) {\n    score -= 35;\n  } else if (daysSinceContact >= 8) {\n    score -= 20;\n  }\n\n  // Adjust based on current stage\n  const stage = (deal.current_stage ?? \"\").toLowerCase();\n  if (stage === 'closed lost') {\n    score -= 60;\n  } else if (stage === 'ghosted') {\n    score -= 40;\n  } else if (stage === 'prospecting') {\n    score -= 5;\n  } else if (stage === 'negotiation') {\n    score += 5;\n  } else if (stage === 'closed won') {\n    score += 10;\n  }\n\n  // Adjust based on deal value\n  const dealValue = Number(deal.deal_value ?? 0);\n  if (dealValue > 15000) {\n    score += 5;\n  } else if (dealValue < 5000) {\n    score -= 10;\n  }\n\n  // Clamp score between 0 and 100\n  score = Math.max(0, Math.min(100, score));\n\n  // Assign health status\n  let health_status = '';\n  if (score >= 80) {\n    health_status = 'Healthy';\n  } else if (score >= 50) {\n    health_status = 'At Risk';\n  } else if (score >= 25) {\n    health_status = 'Stalled';\n  } else {\n    health_status = 'Dead';\n  }\n\n  // Format deal value as currency\n  const formatted_value = '$' + dealValue.toLocaleString('en-US', {\n    minimumFractionDigits: 2,\n    maximumFractionDigits: 2\n  });\n\n  return {\n    json: {\n      deal_id: deal.deal_id,\n      channel: deal.channel,\n      rep_name: deal.rep_name,\n      deal_value: dealValue,\n      formatted_value: formatted_value,\n      current_stage: deal.current_stage,\n      last_contact_date: deal.last_contact_date,\n      days_in_stage: deal.days_in_stage,\n      days_since_contact: daysSinceContact,\n      notes: deal.notes,\n      normalized_at: deal.normalized_at,\n      health_score: score,\n      health_status: health_status\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "ed80dde5-ab6c-43ef-ac3c-c016df08bd54",
+      "name": "Code - Calculate Deal Health Score"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0",
+          "mode": "list",
+          "cachedResultName": "Forge and Frame - Sales Pipeline Hub",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 117255990,
+          "mode": "list",
+          "cachedResultName": "Master Pipeline Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0/edit#gid=117255990"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.normalized_at }}",
+            "Deal ID": "={{ $json.deal_id }}",
+            "Channel": "={{ $json.channel }}",
+            "Rep Name": "={{ $json.rep_name }}",
+            "Deal Value": "={{ $json.formatted_value }}",
+            "Current Stage": "={{ $json.current_stage }}",
+            "Last Contact Date": "={{ $json.last_contact_date }}",
+            "Days In Stage": "={{ $json.days_in_stage }}",
+            "Health Score": "={{ $json.health_score }}",
+            "Health Status": "={{ $json.health_status }}",
+            "Days Since Contact": "={{ $json.days_since_contact }}",
+            "Action Taken": "Processing"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Deal ID",
+              "displayName": "Deal ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Channel",
+              "displayName": "Channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rep Name",
+              "displayName": "Rep Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Deal Value",
+              "displayName": "Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Stage",
+              "displayName": "Current Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Contact Date",
+              "displayName": "Last Contact Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days In Stage",
+              "displayName": "Days In Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Health Score",
+              "displayName": "Health Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Health Status",
+              "displayName": "Health Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days Since Contact",
+              "displayName": "Days Since Contact",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Action Taken",
+              "displayName": "Action Taken",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "97bf1f2c-eb60-4556-bd96-3b919f4dcbec",
+      "name": "Sheets - Log Deal to Master Pipeline Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json['Health Status'] }}",
+                    "rightValue": "Healthy",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "5234759d-af5e-4e1e-bb48-4a8e00a5a1db"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Healthy"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "f0a7e909-1d00-4649-9efb-4fbd339b1815",
+                    "leftValue": "={{ $json['Health Status'] }}",
+                    "rightValue": "At Risk",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "At Risk"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d71f1e70-f919-4942-b43e-39d07b9932ed",
+                    "leftValue": "={{ $json['Health Status'] }}",
+                    "rightValue": "Stalled",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Stalled"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "131f00fd-26ec-4e4d-92ec-836242c2ab2a",
+                    "leftValue": "={{ $json['Health Status'] }}",
+                    "rightValue": "Dead",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Dead"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "5eb6560d-8841-44a0-97cf-1fa2c6cb2bc4",
+      "name": "Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0",
+          "mode": "list",
+          "cachedResultName": "Forge and Frame - Sales Pipeline Hub",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 117255990,
+          "mode": "list",
+          "cachedResultName": "Master Pipeline Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0/edit#gid=117255990"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Deal ID": "={{ $json['Deal ID'] }}",
+            "Health Status": "Healthy",
+            "Action Taken": "✅Healthy - No action required"
+          },
+          "matchingColumns": [
+            "Deal ID"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Deal ID",
+              "displayName": "Deal ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Channel",
+              "displayName": "Channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Rep Name",
+              "displayName": "Rep Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Deal Value",
+              "displayName": "Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Current Stage",
+              "displayName": "Current Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Last Contact Date",
+              "displayName": "Last Contact Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Days In Stage",
+              "displayName": "Days In Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Health Score",
+              "displayName": "Health Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Health Status",
+              "displayName": "Health Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days Since Contact",
+              "displayName": "Days Since Contact",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Action Taken",
+              "displayName": "Action Taken",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1040,
+        -208
+      ],
+      "id": "1377d268-59f4-4d90-9896-cad14b3d4173",
+      "name": "Sheets - Update Master Log - Mark Deal as Healthy",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com ",
+        "subject": "=⚠ Deal Health Check - {{ $json['Deal ID'] }} Needs Attention",
+        "message": "=<h2>⚠️ Deal Health Alert — Action Required</h2>\n\n<p>Hi <strong>{{ $json['Rep Name'] }}</strong>,</p>\n\n<p>Your deal <strong>{{ $json['Deal ID'] }}</strong> has been flagged as <strong>At Risk</strong> by our pipeline monitoring system. Here is a quick coaching note to help you get it back on track.</p>\n\n<h3>Deal Summary:</h3>\n<ul>\n  <li><strong>Deal ID:</strong> {{ $json['Deal ID'] }}</li>\n  <li><strong>Channel:</strong> {{ $json.Channel }}</li>\n  <li><strong>Deal Value:</strong> {{ $json['Deal Value'] }}</li>\n  <li><strong>Current Stage:</strong> {{ $json['Current Stage'] }}</li>\n  <li><strong>Days Since Last Contact:</strong> {{ $json['Days Since Contact'] }}</li>\n  <li><strong>Health Score:</strong> {{ $json['Health Score'] }}/100</li>\n</ul>\n\n<h3>Coaching Recommendations:</h3>\n<ul>\n  <li>Re-engage the prospect with a personalized value-add message</li>\n  <li>Review any previous objections and prepare responses</li>\n  <li>Schedule a check-in call within the next 48 hours</li>\n  <li>Consider offering a case study or social proof relevant to their industry</li>\n</ul>\n\n<p>If you need support please reach out to your manager directly.</p>\n\n<p><strong>Forge and Frame — Automated Sales Coaching System</strong></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1168,
+        -48
+      ],
+      "id": "2b1a4185-e1f3-4725-b8ea-54d44a87dc72",
+      "name": "Gmail - Send Coaching Tip to Rep for At Risk Deal",
+      "webhookId": "ef1f81cd-1db4-43cc-8f9e-544e16d2c26a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0B0YF95K6H",
+          "mode": "list",
+          "cachedResultName": "sales-management"
+        },
+        "text": "=⚠ *At Risk Deal - Manager Attention Required*\n\n\n*Deal ID:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Deal ID'] }}\n\n*Channel:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json.Channel }}\n\n*Rep:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Rep Name'] }}\n\n*Deal Value:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Deal Value'] }}\n\n*Stage:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Current Stage'] }}\n\n*Days Since Contact:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Days Since Contact'] }}\n\n*Health Score:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Health Score'] }}/100\n\nA coaching email has been sent to {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Rep Name'] }}. Please follow up to ensure re-engagement within 48 hours.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1360,
+        -48
+      ],
+      "id": "bb6607af-c23a-4349-b706-a7181c415bb9",
+      "name": "Slack - Alert Sales Manager of At Risk Deal",
+      "webhookId": "15435cc5-c772-45da-acc5-cf14fa937fdd",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "vLo3L458ffAoNoHm",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com ",
+        "subject": "=🚨URGENT - Deal {{ $json['Deal ID'] }} is Stalling.",
+        "message": "=\n<h2>🚨 Urgent — Stalled Deal Requires Immediate Action</h2>\n\n<p>Hi <strong>{{ $json['Rep Name'] }}</strong>,</p>\n\n<p>Deal <strong>{{ $json['Deal ID'] }}</strong> has been flagged as <strong>Stalled</strong> with a health score of only <strong>{{ $json['Health Score'] }}/100</strong>. This deal is in serious danger of being lost without immediate intervention.</p>\n\n<h3>Deal Summary:</h3>\n<ul>\n  <li><strong>Deal ID:</strong> {{ $json['Deal ID'] }}</li>\n  <li><strong>Channel:</strong> {{ $json.Channel }}</li>\n  <li><strong>Deal Value:</strong> {{ $json['Deal Value'] }}</li>\n  <li><strong>Current Stage:</strong> {{ $json['Current Stage'] }}</li>\n  <li><strong>Days Since Last Contact:</strong> {{ $json['Days Since Contact'] }}</li>\n  <li><strong>Days In Current Stage:</strong> {{ $json['Days In Stage'] }}</li>\n</ul>\n\n<h3>Immediate Actions Required:</h3>\n<ul>\n  <li>Contact the prospect TODAY — phone call preferred over email</li>\n  <li>If no response — send a final breakup email to force a decision</li>\n  <li>Brief your manager on the status of this deal immediately</li>\n  <li>Update the CRM with your latest notes and next action</li>\n</ul>\n\n<p>The Sales Director has been notified of this deal's status.</p>\n\n<p><strong>Forge and Frame — Automated Sales Coaching System</strong></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        96
+      ],
+      "id": "4d92f658-2174-465a-81cd-b15f1ee6af14",
+      "name": "Gmail - Send Urgent Nudge to Rep for Stalled Deal",
+      "webhookId": "1eaaedda-6422-4ad3-b07d-e37006056ee5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "U0ATLRAUE7N",
+          "mode": "id"
+        },
+        "text": "=🚨*STALLED Deal - Director Escalation*\n\nA deal has reached critical stall and requires your direct attemtion.\n\n\n*Deal ID:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Deal ID'] }}\n\n*Channel:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json.Channel }}\n\n*Rep:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Rep Name'] }}\n\n*Deal Value:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Deal Value'] }}\n\n*Stage:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Current Stage'] }}\n\n*Days Since Contact:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Days Since Contact'] }}\n\n*Health Score:* {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Health Score'] }}/100\n\n-> An urgent coaching email has been sent to {{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Rep Name'] }}. Please review and consider direct intervention to save this deal.\n\n\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1248,
+        96
+      ],
+      "id": "f88dc019-5b73-4adf-926a-f0c7c54bce78",
+      "name": "Slack DM - Alert Sales Director of Stalled Deal",
+      "webhookId": "a63df68d-ff5f-4b01-9589-6152dd0f9081",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "vLo3L458ffAoNoHm",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hafizredwan10@gmail.com ",
+        "subject": "=📋Loss Analysis Required - Deal {{ $json['Deal ID'] }}",
+        "message": "=\n<h2>📋 Deal Loss Analysis — Please Complete</h2>\n\n<p>Hi <strong>{{ $json['Rep Name'] }}</strong>,</p>\n\n<p>Deal <strong>{{ $json['Deal ID'] }}</strong> has been classified as <strong>Dead</strong> by our pipeline system. To help us improve our win rates, please complete a brief loss analysis.</p>\n\n<h3>Deal Details:</h3>\n<ul>\n  <li><strong>Deal ID:</strong> {{ $json['Deal ID'] }}</li>\n  <li><strong>Channel:</strong> {{ $json.Channel }}</li>\n  <li><strong>Deal Value:</strong> {{ $json['Deal Value'] }}</li>\n  <li><strong>Final Stage:</strong> {{ $json['Current Stage'] }}</li>\n  <li><strong>Total Days In Stage:</strong> {{ $json['Days In Stage'] }}</li>\n</ul>\n\n<h3>Loss Analysis Questions:</h3>\n<ol>\n  <li>What was the primary reason this deal was lost?</li>\n  <li>At what stage did the deal begin to stall?</li>\n  <li>Was there a competitor involved? If so who?</li>\n  <li>What could have been done differently to save this deal?</li>\n  <li>Are there any relationship recovery opportunities in 3-6 months?</li>\n</ol>\n\n<p>Please reply to this email with your answers within 48 hours. This analysis helps us refine our coaching and improve future outcomes.</p>\n\n<p><strong>Forge and Frame — Sales Excellence Program</strong></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1056,
+        368
+      ],
+      "id": "2b727e8f-6ce6-4bb7-ae52-49102005211f",
+      "name": "Gmail - Send Loss Analysis Template to Rep",
+      "webhookId": "d0ead534-dfff-4895-af0b-10b05f694513",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0HKWC0LAAW0rZ3jH",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0",
+          "mode": "list",
+          "cachedResultName": "Forge and Frame - Sales Pipeline Hub",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1183625544,
+          "mode": "list",
+          "cachedResultName": "Closed Lost",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16tOIy0HtWG8zfE8JUoMslDgzrGYYX0CSv8ecINXlbj0/edit#gid=1183625544"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Moved At": "={{ $('Set - Normalize Pipeline Deal Data').item.json.normalized_at }}",
+            "Deal ID": "={{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Deal ID'] }}",
+            "Channel": "={{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json.Channel }}",
+            "Rep Name": "={{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Rep Name'] }}",
+            "Deal Value": "={{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Deal Value'] }}",
+            "Current Stage": "={{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Current Stage'] }}",
+            "Days In Stage": "={{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Days In Stage'] }}",
+            "Health Score": "={{ $('Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead').item.json['Health Score'] }}",
+            "Loss Reason": "Automated classification - rep to complete analysis"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Moved At",
+              "displayName": "Moved At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Deal ID",
+              "displayName": "Deal ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Channel",
+              "displayName": "Channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rep Name",
+              "displayName": "Rep Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Deal Value",
+              "displayName": "Deal Value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Current Stage",
+              "displayName": "Current Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days In Stage",
+              "displayName": "Days In Stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Health Score",
+              "displayName": "Health Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Loss Reason",
+              "displayName": "Loss Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1264,
+        368
+      ],
+      "id": "d1752570-4e1b-4624-8561-8e09950ad496",
+      "name": "Sheets - Move Dead Deal to Closed Lost Tab",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sFTkeuCb4Iu1SJqh",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Trigger\nfires when a new row on the sheet is added.",
+        "height": 112,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -256,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "26a0c08f-732f-47b7-b415-a27740274de8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Data Normalization\nnormalize and clean up the data accepted from the google sheets\n",
+        "height": 112,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        -144
+      ],
+      "typeVersion": 1,
+      "id": "70f0423e-45bd-4cf7-82a6-a0547527e18d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## CODE\ncalculate the deal's health score based on the fields like,\ndays_since_contact, current_stage, deal_value\n",
+        "height": 144,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        336,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "ecad2056-6f91-4557-bb43-6d4094a02003",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Master Pipeline Log\nlog deals to Master sheet ",
+        "height": 144,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        608,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "5f9a9f73-0075-4956-b7e8-ced4b3ec8055",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## ROUTE by DEAL\noutput0: Healthy\nouput1: At Risk\noutput2: Stalled\nouput3: Dead\n",
+        "height": 144,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        736,
+        272
+      ],
+      "typeVersion": 1,
+      "id": "84a6bf1d-35b8-4267-b332-f808dc4c892c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## SWITCH PATHS\n0: if healthy -> log it to Master sheet\n1: if At Risk -> send an coaching tip email and alert slack message\n2: if Stalled -> send an urgent email and then send slack dm to sales director\n3: if Dead -> send a loss analysis email and then log it to closed lost sheet",
+        "height": 208,
+        "width": 320,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1520,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "d65ebd62-960a-401c-a665-f45b0dc746a2",
+      "name": "Sticky Note5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Sheets - Pipeline Watch for New Deals": {
+      "main": [
+        [
+          {
+            "node": "Set - Normalize Pipeline Deal Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Normalize Pipeline Deal Data": {
+      "main": [
+        [
+          {
+            "node": "Code - Calculate Deal Health Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Calculate Deal Health Score": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Log Deal to Master Pipeline Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Log Deal to Master Pipeline Log": {
+      "main": [
+        [
+          {
+            "node": "Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Route by Deal Health - Healthy, At Risk, Stalled, Dead": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Update Master Log - Mark Deal as Healthy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Send Coaching Tip to Rep for At Risk Deal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Send Urgent Nudge to Rep for Stalled Deal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Send Loss Analysis Template to Rep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Coaching Tip to Rep for At Risk Deal": {
+      "main": [
+        [
+          {
+            "node": "Slack - Alert Sales Manager of At Risk Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Urgent Nudge to Rep for Stalled Deal": {
+      "main": [
+        [
+          {
+            "node": "Slack DM - Alert Sales Director of Stalled Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Loss Analysis Template to Rep": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Move Dead Deal to Closed Lost Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "76da186c-3109-4071-863d-4416db9317f6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bb6f1595f07e6272edd57f6434afd9c87f3aa0ecf17c4f671ba5f2c613d40faa"
+  },
+  "id": "IdTttqldJqn2PahO",
+  "tags": []
+}

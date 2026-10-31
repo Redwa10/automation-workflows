@@ -1,0 +1,474 @@
+{
+  "name": "My workflow 6",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "11MdMyFYVgI0hOTG68mw97UswyKQjQHqcVCMwFooQ2Ys",
+          "mode": "list",
+          "cachedResultName": "Foundations Workshop",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/11MdMyFYVgI0hOTG68mw97UswyKQjQHqcVCMwFooQ2Ys/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1871087741,
+          "mode": "list",
+          "cachedResultName": "Form Responses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/11MdMyFYVgI0hOTG68mw97UswyKQjQHqcVCMwFooQ2Ys/edit#gid=1871087741"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "454b5235-fc5b-48f6-a0b9-41c144c7db70",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "Sf4cmdxNooFdy3wU",
+          "name": "Google Sheets Trigger OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0c188aba-7752-49cf-9507-26b0851482bc",
+              "name": "Full name",
+              "value": "={{ $json['Full name'] ? $json['Full name']: \"unknown\" }}",
+              "type": "string"
+            },
+            {
+              "id": "5bd268f8-c966-4a02-8e1f-ab4859225fc0",
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "716ff5d0-1319-4d15-872d-057aecdbc992",
+              "name": "=Months Of Experience",
+              "value": "={{ $json['Months Of Experience'] ? $json['Months Of Experience'] : 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "d5654266-0e55-4f3d-899d-6f0c9e1037ee",
+              "name": "Tag",
+              "value": "={{ $json['Months Of Experience'] >= 12 ? \"Veteran\": \"Rookie\" }}",
+              "type": "string"
+            },
+            {
+              "id": "255285d7-1d1e-4dec-84c6-069ee3f07263",
+              "name": "Date Contacted",
+              "value": "={{ $now }}",
+              "type": "string"
+            },
+            {
+              "id": "5107b7b1-99a3-44d1-9b24-f6ffc889406a",
+              "name": "PDF sent",
+              "value": "={{ $json['Months Of Experience'] >= 12 ? \"Advanced Movement Prep\": \"Safe Start\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "5f949032-5303-421f-b27e-4a71437d35fb",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1ef3c865-3852-43d2-9669-efbf24f7758c",
+              "leftValue": "={{ $json['Months Of Experience'] }}",
+              "rightValue": 12,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "cdf290c7-f4b7-4211-b82c-94d7516d9f3d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "=your Advanced Movement Prep guide",
+        "emailType": "text",
+        "message": "=Hi  {{ $json['Full name'] }}  \n\nWelcome To Iron $ Ink Foundations Workshop!  \n\nWe have prepared an advanced movement prep guide for you based on your experience.  \n\nAccess your PDF here: https://docs.google.com/document/d/1KEjpTzGFJhzLVC9Rt7lHvRfYXA71BXiOb5-c8KHDDLU/edit?usp=sharing  \n\nWe look forward to seeing you at the workshop.Our Head Coach will be reaching out personally to discuss your goals.  \n\nIron $ Ink Strength Studio.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "191e0bf7-9559-44fc-b1fd-53fdc58f71dc",
+      "name": "Send a message",
+      "webhookId": "03892ca8-0ffd-4e2f-a1fa-83b262bdcfc6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "g0DhM0N2U1lXH0iz",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "your Safe Start guide",
+        "emailType": "text",
+        "message": "=Hi {{ $json['Full name'] }}\n\nWelcome To Iron $ Ink Foundations Workshop!\n\nWe have prepared your safe start guide based on your experience, especially for newcomers like you.\n\nAccess your PDF here: https://docs.google.com/document/d/14eipEz3ecOOyXFZKUF09iokmNug4Dhic0ig-9ULlNsc/edit?usp=sharing\n\nSee you at the workshop!\n\nIron $ Ink Strength Studio.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        752,
+        128
+      ],
+      "id": "92712dfc-30d9-4467-ad59-063d6f686907",
+      "name": "Send a message1",
+      "webhookId": "689577b3-2836-48fa-bb62-487af0cbddcf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "g0DhM0N2U1lXH0iz",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0ASUTAQHCP",
+          "mode": "list",
+          "cachedResultName": "head-coach-alerts"
+        },
+        "text": "=New Veteran Sign-Up - Foundations Workshop\n\nName: {{ $('If').item.json['Full name'] }}\nEmail: {{ $('If').item.json.Email }}\nExperience: {{ $('If').item.json['Months Of Experience'] }} months\nTag: {{ $('If').item.json.Tag }}\n\nManual follow-up required from the Head Coach.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "2c78f2f9-084c-4257-8bfa-1749be414f89",
+      "name": "Send a message2",
+      "webhookId": "c03dcf24-5471-4cca-beef-3e54ee6e7820",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "PetpRRsosLOur9d4",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1056,
+        32
+      ],
+      "id": "cf9cda46-2173-40c3-b6ba-43b1cb6ba926",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "11MdMyFYVgI0hOTG68mw97UswyKQjQHqcVCMwFooQ2Ys",
+          "mode": "list",
+          "cachedResultName": "Foundations Workshop",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/11MdMyFYVgI0hOTG68mw97UswyKQjQHqcVCMwFooQ2Ys/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 369606543,
+          "mode": "list",
+          "cachedResultName": "Lead Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/11MdMyFYVgI0hOTG68mw97UswyKQjQHqcVCMwFooQ2Ys/edit#gid=369606543"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Full name": "={{ $('If').item.json['Full name'] }}",
+            "Email": "={{ $('If').item.json.Email }}",
+            "Months Of Experience": "={{ $('If').item.json['Months Of Experience'] }}",
+            "Tag": "={{ $('If').item.json.Tag }}",
+            "Date Contacted": "={{ $('If').item.json['Date Contacted'] }}",
+            "PDF sent": "={{ $('If').item.json['PDF sent'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Full name",
+              "displayName": "Full name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Months Of Experience",
+              "displayName": "Months Of Experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tag",
+              "displayName": "Tag",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date Contacted",
+              "displayName": "Date Contacted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "PDF sent",
+              "displayName": "PDF sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1264,
+        32
+      ],
+      "id": "b1794532-7fd4-4da6-b150-e5d903028ccc",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FdznwUMSqF53sJkd",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        464,
+        320
+      ],
+      "id": "4e965424-e712-40e8-9f64-eaef27fe84f2",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0AT34Q0535",
+          "mode": "list",
+          "cachedResultName": "all-veteran-notification"
+        },
+        "text": "=Iron $ Ink Workflow Error!  \n\nSomething went wrong processing a new lead.\n\nError: {{ $json.execution.error.message }}\n\nPlease check the form response sheet manually.\n",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        672,
+        320
+      ],
+      "id": "46852287-7f57-485d-bbed-6b4fb7100d63",
+      "name": "Send a message3",
+      "webhookId": "3b0af8db-0640-4ba2-a1c8-c8eefa911743",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "PetpRRsosLOur9d4",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9ac8559d-218f-4337-901b-73ff2b810a18",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "eaf6d5418c11e79f1efa1b281ee8dfe8188518c3314460872c96288623f12fdc"
+  },
+  "id": "uN5v2DMFF4B3eA39",
+  "tags": []
+}
